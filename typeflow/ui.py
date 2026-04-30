@@ -27,10 +27,10 @@ class TypeFlowUI:
         self._on_privacy_toggle = on_privacy_toggle
         self._root = tk.Tk()
         self._root.title("TypeFlow")
-        self._root.geometry("560x500")
+        self._root.geometry("520x420")
         self._root.resizable(False, False)
         self._root.protocol("WM_DELETE_WINDOW", on_hide)
-        self._root.minsize(560, 500)
+        self._root.minsize(520, 420)
         self._root.attributes("-topmost", True)
         self._root.attributes("-alpha", 0.98)
 
@@ -54,9 +54,15 @@ class TypeFlowUI:
         self._mode_var = tk.StringVar(value=initial_mode)
         self._hotkey_var = tk.StringVar(value=f"Global hotkey: {hotkey}")
         self._status_badge = tk.StringVar(value="Ready")
+        self._overlay_title = tk.StringVar(value="Ready")
+        self._overlay_hint = tk.StringVar(value=f"Press {hotkey} to start dictation")
         self._settings_window: tk.Toplevel | None = None
         self._pulse_after_id: str | None = None
         self._pulse_step = 0
+        self._wave_after_id: str | None = None
+        self._wave_phase = 0
+        self._overlay_window: tk.Toplevel | None = None
+        self._wave_bars: list[int] = []
 
         self._surface_color = "#f4f7fb"
         self._card_color = "#ffffff"
@@ -90,6 +96,7 @@ class TypeFlowUI:
         container = tk.Frame(self._root, padx=20, pady=18, bg=self._surface_color)
         container.pack(fill="both", expand=True)
         self._root.configure(bg=self._surface_color)
+        self._create_recording_overlay()
 
         content_area = tk.Frame(container, bg=self._surface_color)
         content_area.pack(fill="both", expand=True)
@@ -112,13 +119,6 @@ class TypeFlowUI:
             bg=self._surface_color,
             fg=self._muted_text_color,
         ).pack(anchor="w", pady=(4, 0))
-        tk.Label(
-            title_copy,
-            text="Floating voice HUD for fast dictation across Windows.",
-            font=("Segoe UI", 8),
-            bg=self._surface_color,
-            fg="#7a8ea3",
-        ).pack(anchor="w", pady=(6, 0))
 
         status_cluster = tk.Frame(title_row, bg=self._surface_color)
         status_cluster.pack(side="right", anchor="n", pady=(6, 0))
@@ -139,16 +139,16 @@ class TypeFlowUI:
             font=("Segoe UI", 10),
             bg=self._surface_color,
             fg="#496179",
-        ).pack(anchor="w", pady=(10, 14))
+        ).pack(anchor="w", pady=(10, 12))
 
         summary_row = tk.Frame(content_area, bg=self._surface_color)
-        summary_row.pack(fill="x", pady=(0, 14))
-        self._build_summary_card(summary_row, "Mode", self._mode_var, width=152).pack(side="left", fill="x", expand=True)
-        self._build_summary_card(summary_row, "Insert", self._paste_mode, width=152).pack(side="left", fill="x", expand=True, padx=(
+        summary_row.pack(fill="x", pady=(0, 12))
+        self._build_summary_card(summary_row, "Mode", self._mode_var, width=138).pack(side="left", fill="x", expand=True)
+        self._build_summary_card(summary_row, "Insert", self._paste_mode, width=138).pack(side="left", fill="x", expand=True, padx=(
             10,
             10,
         ))
-        self._build_summary_card(summary_row, "Translation", self._translation_mode, width=152).pack(side="left", fill="x", expand=True)
+        self._build_summary_card(summary_row, "Translation", self._translation_mode, width=138).pack(side="left", fill="x", expand=True)
 
         workspace_card = tk.Frame(
             content_area,
@@ -159,7 +159,7 @@ class TypeFlowUI:
             padx=18,
             pady=18,
         )
-        workspace_card.pack(fill="x", pady=(0, 14))
+        workspace_card.pack(fill="x", pady=(0, 12))
 
         workspace_header = tk.Frame(workspace_card, bg=self._card_color)
         workspace_header.pack(fill="x")
@@ -183,13 +183,13 @@ class TypeFlowUI:
 
         tk.Label(
             workspace_card,
-            text="Keep TypeFlow in the background, stay in your target field, press the hotkey, and let the text flow in automatically.",
-            wraplength=470,
+            text="Stay in your target app, press the hotkey, and let TypeFlow write for you.",
+            wraplength=430,
             justify="left",
             font=("Segoe UI", 9),
             bg=self._card_color,
             fg=self._muted_text_color,
-        ).pack(anchor="w", pady=(10, 14))
+        ).pack(anchor="w", pady=(10, 12))
 
         quick_toggle_row = tk.Frame(workspace_card, bg=self._card_color)
         quick_toggle_row.pack(fill="x")
@@ -269,13 +269,13 @@ class TypeFlowUI:
         )
         status_card.pack(fill="both", expand=True)
 
-        tk.Label(status_card, text="Live status", font=("Segoe UI", 10, "bold"), bg=self._card_color, fg=self._text_color).pack(
+        tk.Label(status_card, text="Recent output", font=("Segoe UI", 10, "bold"), bg=self._card_color, fg=self._text_color).pack(
             anchor="w"
         )
         self._status_label = tk.Label(
             status_card,
             textvariable=self._status,
-            font=("Segoe UI", 15, "bold"),
+            font=("Segoe UI", 13, "bold"),
             bg=self._card_color,
             fg=self._success_color,
         )
@@ -283,34 +283,28 @@ class TypeFlowUI:
         tk.Label(
             status_card,
             textvariable=self._last_text,
-            wraplength=470,
+            wraplength=430,
             justify="left",
             font=("Segoe UI", 10),
             bg=self._card_color,
             fg="#203040",
-        ).pack(anchor="w", pady=(10, 12))
+        ).pack(anchor="w", pady=(10, 10))
 
-        workflow_strip = tk.Frame(status_card, bg=self._card_color)
-        workflow_strip.pack(fill="x", pady=(2, 0))
-        self._build_step_card(workflow_strip, "1", "Press hotkey", "Start dictation from any text field.").pack(
-            side="left", fill="both", expand=True
-        )
-        self._build_step_card(workflow_strip, "2", "Speak naturally", "Filler words and pauses can be cleaned up automatically.").pack(
-            side="left", fill="both", expand=True, padx=(10, 10)
-        )
-        self._build_step_card(workflow_strip, "3", "Text appears", "TypeFlow inserts formatted text right where you work.").pack(
-            side="left", fill="both", expand=True
-        )
+        compact_meta = tk.Frame(status_card, bg=self._card_color)
+        compact_meta.pack(fill="x")
+        self._build_mini_chip(compact_meta, self._paste_mode).pack(side="left")
+        self._build_mini_chip(compact_meta, self._translation_mode).pack(side="left", padx=(8, 0))
+        self._build_mini_chip(compact_meta, self._privacy_mode).pack(side="left", padx=(8, 0))
 
         tk.Label(
             status_card,
-            text="Supports punctuation commands in German and English, translation modes, snippets, and a local-first privacy workflow.",
-            wraplength=470,
+            text="Recording opens a floating overlay with a live waveform so the main window can stay out of the way.",
+            wraplength=430,
             justify="left",
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 8),
             bg=self._card_color,
             fg=self._muted_text_color,
-        ).pack(anchor="w", pady=(14, 0))
+        ).pack(anchor="w", pady=(12, 0))
 
         button_row = tk.Frame(container, bg=self._surface_color)
         button_row.pack(fill="x", side="bottom", pady=(14, 0))
@@ -431,6 +425,8 @@ class TypeFlowUI:
     def close(self) -> None:
         if self._settings_window is not None and self._settings_window.winfo_exists():
             self._settings_window.destroy()
+        if self._overlay_window is not None and self._overlay_window.winfo_exists():
+            self._overlay_window.destroy()
         self._root.destroy()
 
     def open_settings(self, config: AppConfig, on_save: Callable[[AppConfig], None]) -> None:
@@ -659,13 +655,18 @@ class TypeFlowUI:
         )
         return card
 
-    def _build_step_card(self, parent: tk.Widget, number: str, title: str, copy: str) -> tk.Frame:
-        card = tk.Frame(parent, bg="#f8fbfd", bd=0, highlightthickness=1, highlightbackground="#e3edf5", padx=12, pady=12)
-        badge = tk.Label(card, text=number, font=("Segoe UI", 8, "bold"), width=3, padx=0, pady=4, bg=self._accent_soft, fg=self._accent_color)
-        badge.pack(anchor="w")
-        tk.Label(card, text=title, font=("Segoe UI", 10, "bold"), bg="#f8fbfd", fg=self._text_color).pack(anchor="w", pady=(8, 4))
-        tk.Label(card, text=copy, wraplength=145, justify="left", font=("Segoe UI", 8), bg="#f8fbfd", fg=self._muted_text_color).pack(anchor="w")
-        return card
+    def _build_mini_chip(self, parent: tk.Widget, variable: tk.StringVar) -> tk.Frame:
+        chip = tk.Frame(parent, bg="#edf4f8", padx=10, pady=6)
+        tk.Label(
+            chip,
+            textvariable=variable,
+            font=("Segoe UI", 8, "bold"),
+            bg="#edf4f8",
+            fg="#33526b",
+            wraplength=120,
+            justify="left",
+        ).pack(anchor="w")
+        return chip
 
     def _update_status_appearance(self, text: str) -> None:
         lowered = text.lower()
@@ -684,6 +685,8 @@ class TypeFlowUI:
             status_fg = self._warning_color
             button_text = "Stop dictation"
             is_recording = True
+            self._overlay_title.set("Listening...")
+            self._overlay_hint.set("Speak naturally. TypeFlow is capturing your voice.")
         elif "transcrib" in lowered or "processing" in lowered:
             badge_text = "Processing"
             badge_fg = self._accent_color
@@ -691,22 +694,32 @@ class TypeFlowUI:
             status_fg = self._accent_color
             button_text = "Processing..."
             is_processing = True
+            self._overlay_title.set("Processing...")
+            self._overlay_hint.set("Turning your speech into polished text.")
         elif "error" in lowered or "failed" in lowered:
             badge_text = "Needs attention"
             badge_fg = self._error_color
             badge_bg = self._error_soft
             status_fg = self._error_color
+            self._overlay_title.set("Something needs attention")
+            self._overlay_hint.set(text)
         elif "saved" in lowered or "inserted" in lowered or "stopped automatically" in lowered:
             badge_text = "Done"
             badge_fg = self._success_color
             badge_bg = self._success_soft
             status_fg = self._success_color
+            self._overlay_title.set("Done")
+            self._overlay_hint.set(text)
+        else:
+            self._overlay_title.set("Ready")
+            self._overlay_hint.set("Press the hotkey to start dictation.")
 
         self._status_badge.set(badge_text)
         self._status_badge_label.configure(bg=badge_bg, fg=badge_fg)
         self._status_label.configure(fg=status_fg)
         self._toggle_button.configure(text=button_text, state="disabled" if button_text == "Processing..." else "normal")
         self._set_recording_pulse(is_recording)
+        self._set_overlay_state(is_recording, is_processing, badge_bg, badge_fg)
 
     def _set_recording_pulse(self, enabled: bool) -> None:
         if enabled:
@@ -731,6 +744,119 @@ class TypeFlowUI:
         self._toggle_button.configure(bg=button_bg, activebackground=button_bg)
         self._pulse_step += 1
         self._pulse_after_id = self._root.after(220, self._run_recording_pulse)
+
+    def _create_recording_overlay(self) -> None:
+        overlay = tk.Toplevel(self._root)
+        overlay.withdraw()
+        overlay.overrideredirect(True)
+        overlay.attributes("-topmost", True)
+        overlay.configure(bg="#0f1722")
+        overlay.wm_attributes("-alpha", 0.97)
+        self._overlay_window = overlay
+
+        shell = tk.Frame(overlay, bg="#0f1722", padx=18, pady=16, highlightthickness=1, highlightbackground="#1f344b")
+        shell.pack(fill="both", expand=True)
+
+        top_row = tk.Frame(shell, bg="#0f1722")
+        top_row.pack(fill="x")
+        self._overlay_dot = tk.Label(top_row, text="●", font=("Segoe UI", 14, "bold"), bg="#0f1722", fg="#fbbf24")
+        self._overlay_dot.pack(side="left")
+        tk.Label(
+            top_row,
+            textvariable=self._overlay_title,
+            font=("Segoe UI", 13, "bold"),
+            bg="#0f1722",
+            fg="#f8fafc",
+        ).pack(side="left", padx=(8, 0))
+
+        self._overlay_canvas = tk.Canvas(shell, width=248, height=48, bg="#0f1722", highlightthickness=0)
+        self._overlay_canvas.pack(pady=(14, 10))
+        self._wave_bars.clear()
+        for index in range(12):
+            x0 = 10 + index * 19
+            bar = self._overlay_canvas.create_rectangle(x0, 24, x0 + 10, 24, fill="#1fb6cc", width=0)
+            self._wave_bars.append(bar)
+
+        tk.Label(
+            shell,
+            textvariable=self._overlay_hint,
+            font=("Segoe UI", 9),
+            bg="#0f1722",
+            fg="#c7d2de",
+            wraplength=250,
+            justify="left",
+        ).pack(anchor="w")
+
+    def _set_overlay_state(self, is_recording: bool, is_processing: bool, badge_bg: str, badge_fg: str) -> None:
+        if self._overlay_window is None or not self._overlay_window.winfo_exists():
+            return
+
+        if is_recording or is_processing:
+            self._show_overlay()
+        else:
+            self._hide_overlay()
+            return
+
+        self._overlay_dot.configure(fg=badge_fg)
+        self._overlay_canvas.configure(bg="#0f1722")
+
+        if is_recording:
+            self._start_wave_animation()
+        else:
+            self._stop_wave_animation()
+            for index, bar in enumerate(self._wave_bars):
+                self._overlay_canvas.coords(bar, *self._wave_rect(index, 16))
+                self._overlay_canvas.itemconfigure(bar, fill="#1fb6cc")
+
+    def _show_overlay(self) -> None:
+        if self._overlay_window is None or not self._overlay_window.winfo_exists():
+            return
+        self._overlay_window.deiconify()
+        self._overlay_window.lift()
+        self._position_overlay()
+
+    def _hide_overlay(self) -> None:
+        self._stop_wave_animation()
+        if self._overlay_window is not None and self._overlay_window.winfo_exists():
+            self._overlay_window.withdraw()
+
+    def _position_overlay(self) -> None:
+        if self._overlay_window is None or not self._overlay_window.winfo_exists():
+            return
+        self._root.update_idletasks()
+        screen_width = self._root.winfo_screenwidth()
+        screen_height = self._root.winfo_screenheight()
+        width = 284
+        height = 126
+        x = screen_width - width - 40
+        y = screen_height - height - 80
+        self._overlay_window.geometry(f"{width}x{height}+{x}+{y}")
+
+    def _start_wave_animation(self) -> None:
+        if self._wave_after_id is None:
+            self._wave_phase = 0
+            self._animate_wave()
+
+    def _stop_wave_animation(self) -> None:
+        if self._wave_after_id is not None:
+            self._root.after_cancel(self._wave_after_id)
+            self._wave_after_id = None
+
+    def _animate_wave(self) -> None:
+        heights = (10, 18, 26, 34, 42, 30, 20, 38)
+        for index, bar in enumerate(self._wave_bars):
+            height = heights[(index + self._wave_phase) % len(heights)]
+            self._overlay_canvas.coords(bar, *self._wave_rect(index, height))
+            fill = "#4dd0e1" if height >= 30 else "#1fb6cc"
+            self._overlay_canvas.itemconfigure(bar, fill=fill)
+        self._wave_phase = (self._wave_phase + 1) % len(heights)
+        self._wave_after_id = self._root.after(120, self._animate_wave)
+
+    def _wave_rect(self, index: int, height: int) -> tuple[int, int, int, int]:
+        x0 = 10 + index * 19
+        center = 24
+        half = height // 2
+        return (x0, center - half, x0 + 10, center + half)
 
     def _add_labeled_entry(self, parent: tk.Widget, label: str, variable: tk.StringVar) -> None:
         row = tk.Frame(parent, bg=parent.cget("bg"))
