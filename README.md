@@ -220,3 +220,40 @@ Useful for debugging:
 ## Status
 
 TypeFlow is currently an MVP focused on reliable dictation, insertion, and local-first workflow on Windows.
+
+## Branding Assets
+
+The repository now includes generated branding assets for the app window, tray icon, and Windows executable:
+
+- `assets/typeflow-icon.png`
+- `assets/typeflow-tray.png`
+- `assets/typeflow.ico`
+
+You can regenerate them at any time with:
+
+```powershell
+python .\scripts\generate_assets.py
+```
+
+## Windows Build
+
+TypeFlow now includes a first `.exe` packaging workflow based on PyInstaller.
+
+Build the app with:
+
+```powershell
+.\build.ps1
+```
+
+When the build succeeds, the executable is written to:
+
+```text
+dist\TypeFlow.exe
+```
+
+The build process currently:
+
+- regenerates the icon assets
+- packages the app as a windowed executable
+- embeds the TypeFlow app icon
+- includes the `assets` folder in the packaged app

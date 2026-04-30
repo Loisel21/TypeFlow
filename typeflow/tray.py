@@ -4,8 +4,9 @@ import threading
 from collections.abc import Callable
 
 import pystray
-from PIL import Image, ImageDraw
+from PIL import Image
 
+from typeflow.assets import asset_path
 
 class TypeFlowTray:
     def __init__(self, on_show: Callable[[], None], on_hide: Callable[[], None], on_exit: Callable[[], None]) -> None:
@@ -49,9 +50,8 @@ class TypeFlowTray:
         self._on_exit()
 
     def _build_icon(self) -> Image.Image:
-        image = Image.new("RGBA", (64, 64), "#12344d")
-        draw = ImageDraw.Draw(image)
-        draw.rounded_rectangle((8, 8, 56, 56), radius=14, fill="#0f766e")
-        draw.ellipse((22, 18, 42, 38), fill="white")
-        draw.rectangle((29, 34, 35, 46), fill="white")
-        return image
+        tray_icon = asset_path("typeflow-tray.png")
+        if tray_icon.exists():
+            return Image.open(tray_icon).convert("RGBA")
+
+        return Image.new("RGBA", (64, 64), "#12344d")

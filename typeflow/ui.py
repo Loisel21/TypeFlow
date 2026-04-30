@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from collections.abc import Callable
 
+from typeflow.assets import asset_path
 from typeflow.config import AppConfig
 
 
@@ -33,6 +34,8 @@ class TypeFlowUI:
         self._root.minsize(520, 420)
         self._root.attributes("-topmost", True)
         self._root.attributes("-alpha", 0.98)
+        self._icon_image: tk.PhotoImage | None = None
+        self._apply_window_icon()
 
         menu_bar = tk.Menu(self._root)
         file_menu = tk.Menu(menu_bar, tearoff=0)
@@ -68,8 +71,8 @@ class TypeFlowUI:
         self._card_color = "#ffffff"
         self._text_color = "#16324f"
         self._muted_text_color = "#5e7488"
-        self._accent_color = "#0b7285"
-        self._accent_soft = "#d9f0f3"
+        self._accent_color = "#0d6e7c"
+        self._accent_soft = "#d7eef2"
         self._success_color = "#0f766e"
         self._success_soft = "#d7f5ec"
         self._warning_color = "#9a6700"
@@ -109,9 +112,20 @@ class TypeFlowUI:
 
         title_copy = tk.Frame(title_row, bg=self._surface_color)
         title_copy.pack(side="left", anchor="n")
-        tk.Label(title_copy, text="TypeFlow", font=("Segoe UI", 24, "bold"), bg=self._surface_color, fg=self._text_color).pack(
-            anchor="w"
+        brand_row = tk.Frame(title_copy, bg=self._surface_color)
+        brand_row.pack(anchor="w")
+        tk.Label(brand_row, text="TypeFlow", font=("Segoe UI Semibold", 24), bg=self._surface_color, fg=self._text_color).pack(
+            side="left"
         )
+        tk.Label(
+            brand_row,
+            text="beta",
+            font=("Segoe UI", 8, "bold"),
+            padx=8,
+            pady=3,
+            bg="#dff6eb",
+            fg="#0f766e",
+        ).pack(side="left", padx=(10, 0), pady=(6, 0))
         tk.Label(
             title_copy,
             text="Speak naturally. Your text appears polished in any app.",
@@ -125,7 +139,7 @@ class TypeFlowUI:
         self._status_badge_label = tk.Label(
             status_cluster,
             textvariable=self._status_badge,
-            font=("Segoe UI", 9, "bold"),
+            font=("Segoe UI Semibold", 9),
             padx=12,
             pady=6,
             bg=self._accent_soft,
@@ -155,7 +169,7 @@ class TypeFlowUI:
             bg=self._card_color,
             bd=0,
             highlightthickness=1,
-            highlightbackground="#dbe3ec",
+            highlightbackground="#d6e2ea",
             padx=18,
             pady=18,
         )
@@ -263,7 +277,7 @@ class TypeFlowUI:
             bg=self._card_color,
             bd=0,
             highlightthickness=1,
-            highlightbackground="#dbe3ec",
+            highlightbackground="#d6e2ea",
             padx=18,
             pady=18,
         )
@@ -313,7 +327,7 @@ class TypeFlowUI:
             button_row,
             text="Start dictation",
             command=on_toggle,
-            font=("Segoe UI", 10),
+            font=("Segoe UI Semibold", 10),
             padx=16,
             pady=8,
             bg=self._accent_color,
@@ -645,12 +659,29 @@ class TypeFlowUI:
     def _handle_privacy_toggle(self) -> None:
         self._on_privacy_toggle(self._privacy_toggle_var.get())
 
+    def _apply_window_icon(self) -> None:
+        icon_ico = asset_path("typeflow.ico")
+        icon_png = asset_path("typeflow-icon.png")
+        try:
+            if icon_ico.exists():
+                self._root.iconbitmap(default=str(icon_ico))
+                return
+        except tk.TclError:
+            pass
+
+        if icon_png.exists():
+            try:
+                self._icon_image = tk.PhotoImage(file=str(icon_png))
+                self._root.iconphoto(True, self._icon_image)
+            except tk.TclError:
+                self._icon_image = None
+
     def _build_summary_card(self, parent: tk.Widget, title: str, variable: tk.StringVar, width: int) -> tk.Frame:
-        card = tk.Frame(parent, bg=self._card_color, bd=0, highlightthickness=1, highlightbackground="#dbe3ec", padx=14, pady=12)
+        card = tk.Frame(parent, bg=self._card_color, bd=0, highlightthickness=1, highlightbackground="#d6e2ea", padx=14, pady=12)
         card.configure(width=width)
         card.pack_propagate(False)
         tk.Label(card, text=title, font=("Segoe UI", 8, "bold"), bg=self._card_color, fg=self._muted_text_color).pack(anchor="w")
-        tk.Label(card, textvariable=variable, font=("Segoe UI", 10, "bold"), bg=self._card_color, fg=self._text_color, wraplength=140, justify="left").pack(
+        tk.Label(card, textvariable=variable, font=("Segoe UI Semibold", 10), bg=self._card_color, fg=self._text_color, wraplength=140, justify="left").pack(
             anchor="w", pady=(8, 0)
         )
         return card
