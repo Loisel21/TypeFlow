@@ -7,15 +7,15 @@ import pystray
 from PIL import Image, ImageDraw
 
 
-class VoiceSpeechTray:
+class TypeFlowTray:
     def __init__(self, on_show: Callable[[], None], on_hide: Callable[[], None], on_exit: Callable[[], None]) -> None:
         self._on_show = on_show
         self._on_hide = on_hide
         self._on_exit = on_exit
         self._icon = pystray.Icon(
-            "VoiceSpeech",
+            "TypeFlow",
             icon=self._build_icon(),
-            title="VoiceSpeech",
+            title="TypeFlow",
             menu=pystray.Menu(
                 pystray.MenuItem("Fenster anzeigen", self._handle_show),
                 pystray.MenuItem("In Hintergrund senden", self._handle_hide),

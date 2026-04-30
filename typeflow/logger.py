@@ -7,9 +7,9 @@ from pathlib import Path
 def setup_logger() -> logging.Logger:
     log_dir = Path(__file__).resolve().parents[1] / "logs"
     log_dir.mkdir(exist_ok=True)
-    log_file = log_dir / "voicespeech.log"
+    log_file = log_dir / "typeflow.log"
 
-    logger = logging.getLogger("voicespeech")
+    logger = logging.getLogger("typeflow")
     if logger.handlers:
         return logger
 

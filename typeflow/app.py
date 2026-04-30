@@ -4,18 +4,18 @@ import threading
 import traceback
 from queue import Empty, Queue
 
-from voicespeech.config import AppConfig
-from voicespeech.formatter import OutputFormatter
-from voicespeech.hotkey import GlobalHotkey
-from voicespeech.inserter import TextInserter
-from voicespeech.logger import setup_logger
-from voicespeech.recorder import AudioRecorder
-from voicespeech.tray import VoiceSpeechTray
-from voicespeech.transcriber import WhisperTranscriber
-from voicespeech.ui import VoiceSpeechUI
+from typeflow.config import AppConfig
+from typeflow.formatter import OutputFormatter
+from typeflow.hotkey import GlobalHotkey
+from typeflow.inserter import TextInserter
+from typeflow.logger import setup_logger
+from typeflow.recorder import AudioRecorder
+from typeflow.tray import TypeFlowTray
+from typeflow.transcriber import WhisperTranscriber
+from typeflow.ui import TypeFlowUI
 
 
-class VoiceSpeechApp:
+class TypeFlowApp:
     def __init__(self) -> None:
         self.config = AppConfig.load()
         self.logger = setup_logger()
@@ -32,7 +32,7 @@ class VoiceSpeechApp:
             beam_size=self.config.beam_size,
         )
         self.inserter = TextInserter(logger=self.logger, paste_mode=self.config.paste_mode)
-        self.ui = VoiceSpeechUI(
+        self.ui = TypeFlowUI(
             hotkey=self.config.hotkey,
             initial_mode=self.config.output_mode,
             on_toggle=self.toggle_recording,
@@ -41,7 +41,7 @@ class VoiceSpeechApp:
             on_open_settings=self.open_settings,
             on_mode_change=self.set_output_mode,
         )
-        self.tray = VoiceSpeechTray(
+        self.tray = TypeFlowTray(
             on_show=self.show_window,
             on_hide=self.hide_to_tray,
             on_exit=self.shutdown,
@@ -84,7 +84,7 @@ class VoiceSpeechApp:
         if self._is_shutting_down:
             return
         self._is_shutting_down = True
-        self.logger.info("VoiceSpeech wird beendet.")
+        self.logger.info("TypeFlow wird beendet.")
         self.hotkey.stop()
         self.tray.stop()
         if self.recorder.is_recording:
@@ -94,7 +94,7 @@ class VoiceSpeechApp:
     def hide_to_tray(self) -> None:
         self.logger.info("Fenster in den Hintergrund gesendet.")
         self.ui.hide()
-        self.tray.notify("VoiceSpeech", "Laeuft im Hintergrund weiter.")
+        self.tray.notify("TypeFlow", "Laeuft im Hintergrund weiter.")
 
     def show_window(self) -> None:
         self.logger.info("Fenster wieder angezeigt.")
@@ -159,7 +159,7 @@ class VoiceSpeechApp:
                 self._events.put(("status", "Keine Sprache erkannt"))
         except Exception as exc:  # noqa: BLE001
             console_trace = traceback.format_exc()
-            print("\n[VoiceSpeech] Fehler bei der Audioverarbeitung:")
+            print("\n[TypeFlow] Fehler bei der Audioverarbeitung:")
             print(console_trace, flush=True)
             self.logger.exception("Fehler bei der Audioverarbeitung: %s", exc)
             message = f"Fehler: {exc}"

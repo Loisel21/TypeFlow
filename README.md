@@ -1,4 +1,4 @@
-# VoiceSpeech
+# TypeFlow
 
 Windows-Desktop-App fuer systemweites Diktieren. Das Projekt ist als MVP fuer eine App im Stil von Voicely aufgebaut:
 
@@ -95,7 +95,7 @@ hallo team komma neue zeile bitte testet den build punkt
 
 Die App schreibt ein Log nach:
 
-- `logs/voicespeech.log`
+- `logs/typeflow.log`
 
 Dort siehst du unter anderem:
 
@@ -105,15 +105,15 @@ Dort siehst du unter anderem:
 
 ## Architektur
 
-- `voicespeech/app.py`: Anwendungslogik und Workflow
-- `voicespeech/hotkey.py`: globaler Hotkey
-- `voicespeech/recorder.py`: Mikrofonaufnahme
-- `voicespeech/transcriber.py`: lokale STT-Pipeline
-- `voicespeech/inserter.py`: Einfuegen in aktive App
-- `voicespeech/ui.py`: kleines Tk-Frontend
-- `voicespeech/tray.py`: Windows-Systemtray
-- `voicespeech/logger.py`: Log-Datei und Konsolen-Logging
-- `voicespeech/formatter.py`: Ausgabe-Modi und Sprachbefehle
+- `typeflow/app.py`: Anwendungslogik und Workflow
+- `typeflow/hotkey.py`: globaler Hotkey
+- `typeflow/recorder.py`: Mikrofonaufnahme
+- `typeflow/transcriber.py`: lokale STT-Pipeline
+- `typeflow/inserter.py`: Einfuegen in aktive App
+- `typeflow/ui.py`: kleines Tk-Frontend
+- `typeflow/tray.py`: Windows-Systemtray
+- `typeflow/logger.py`: Log-Datei und Konsolen-Logging
+- `typeflow/formatter.py`: Ausgabe-Modi und Sprachbefehle
 
 ## Naechste sinnvolle Schritte
 

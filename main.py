@@ -1,8 +1,8 @@
-from voicespeech.app import VoiceSpeechApp
+from typeflow.app import TypeFlowApp
 
 
 def main() -> None:
-    app = VoiceSpeechApp()
+    app = TypeFlowApp()
     app.run()
 
 

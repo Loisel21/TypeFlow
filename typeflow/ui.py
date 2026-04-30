@@ -3,10 +3,10 @@ from __future__ import annotations
 import tkinter as tk
 from collections.abc import Callable
 
-from voicespeech.config import AppConfig
+from typeflow.config import AppConfig
 
 
-class VoiceSpeechUI:
+class TypeFlowUI:
     def __init__(
         self,
         hotkey: str,
@@ -19,7 +19,7 @@ class VoiceSpeechUI:
     ) -> None:
         self._on_mode_change = on_mode_change
         self._root = tk.Tk()
-        self._root.title("VoiceSpeech")
+        self._root.title("TypeFlow")
         self._root.geometry("560x360")
         self._root.resizable(False, False)
         self._root.protocol("WM_DELETE_WINDOW", on_hide)
@@ -34,7 +34,7 @@ class VoiceSpeechUI:
         container = tk.Frame(self._root, padx=18, pady=18)
         container.pack(fill="both", expand=True)
 
-        tk.Label(container, text="VoiceSpeech", font=("Segoe UI", 18, "bold")).pack(anchor="w")
+        tk.Label(container, text="TypeFlow", font=("Segoe UI", 18, "bold")).pack(anchor="w")
         tk.Label(
             container,
             textvariable=self._hotkey_var,
@@ -161,7 +161,7 @@ class VoiceSpeechUI:
             return
 
         window = tk.Toplevel(self._root)
-        window.title("VoiceSpeech Einstellungen")
+        window.title("TypeFlow Einstellungen")
         window.geometry("420x320")
         window.resizable(False, False)
         window.transient(self._root)
