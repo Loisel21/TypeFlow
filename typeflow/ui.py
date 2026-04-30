@@ -24,6 +24,17 @@ class TypeFlowUI:
         self._root.geometry("620x420")
         self._root.resizable(False, False)
         self._root.protocol("WM_DELETE_WINDOW", on_hide)
+        self._root.minsize(620, 420)
+
+        menu_bar = tk.Menu(self._root)
+        file_menu = tk.Menu(menu_bar, tearoff=0)
+        file_menu.add_command(label="Settings", command=on_open_settings)
+        file_menu.add_separator()
+        file_menu.add_command(label="Send to background", command=on_hide)
+        file_menu.add_command(label="Exit", command=on_exit)
+        menu_bar.add_cascade(label="File", menu=file_menu)
+        self._root.config(menu=menu_bar)
+        self._root.bind_all("<Control-comma>", lambda _event: on_open_settings())
 
         self._status = tk.StringVar(value="Ready")
         self._last_text = tk.StringVar(value="No transcription yet")
@@ -38,7 +49,10 @@ class TypeFlowUI:
         container.pack(fill="both", expand=True)
         self._root.configure(bg="#f4f7fb")
 
-        hero = tk.Frame(container, bg="#f4f7fb")
+        content_area = tk.Frame(container, bg="#f4f7fb")
+        content_area.pack(fill="both", expand=True)
+
+        hero = tk.Frame(content_area, bg="#f4f7fb")
         hero.pack(fill="x")
 
         tk.Label(hero, text="TypeFlow", font=("Segoe UI", 24, "bold"), bg="#f4f7fb", fg="#16324f").pack(anchor="w")
@@ -59,7 +73,7 @@ class TypeFlowUI:
             fg="#5e7488",
         ).pack(anchor="w", pady=(0, 16))
 
-        controls_card = tk.Frame(container, bg="white", bd=0, highlightthickness=1, highlightbackground="#dbe3ec")
+        controls_card = tk.Frame(content_area, bg="white", bd=0, highlightthickness=1, highlightbackground="#dbe3ec")
         controls_card.pack(fill="x", pady=(0, 14))
 
         mode_row = tk.Frame(controls_card, bg="white", padx=16, pady=14)
@@ -77,7 +91,7 @@ class TypeFlowUI:
         mode_menu.config(width=12, font=("Segoe UI", 9))
         mode_menu.pack(side="left", padx=(12, 0))
 
-        status_card = tk.Frame(container, bg="white", bd=0, highlightthickness=1, highlightbackground="#dbe3ec")
+        status_card = tk.Frame(content_area, bg="white", bd=0, highlightthickness=1, highlightbackground="#dbe3ec")
         status_card.pack(fill="both", expand=True)
 
         tk.Label(status_card, text="Status", font=("Segoe UI", 10, "bold"), bg="white", fg="#16324f").pack(
@@ -115,7 +129,7 @@ class TypeFlowUI:
         ).pack(anchor="w", padx=16, pady=(0, 16))
 
         button_row = tk.Frame(container, bg="#f4f7fb")
-        button_row.pack(anchor="w", pady=(14, 0))
+        button_row.pack(fill="x", side="bottom", pady=(14, 0))
 
         tk.Button(
             button_row,
