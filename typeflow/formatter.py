@@ -4,7 +4,18 @@ import re
 from dataclasses import dataclass
 
 
-VOICE_COMMANDS = {
+SPOKEN_COMMANDS = {
+    "new line": "\n",
+    "line break": "\n",
+    "new paragraph": "\n\n",
+    "paragraph break": "\n\n",
+    "comma": ",",
+    "period": ".",
+    "question mark": "?",
+    "exclamation mark": "!",
+    "colon": ":",
+    "semicolon": ";",
+    "tab": "\t",
     "neue zeile": "\n",
     "zeilenumbruch": "\n",
     "neuer absatz": "\n\n",
@@ -15,8 +26,24 @@ VOICE_COMMANDS = {
     "ausrufezeichen": "!",
     "doppelpunkt": ":",
     "semikolon": ";",
-    "tab": "    ",
+    "tabulator": "\t",
 }
+
+FILLER_WORDS = (
+    "uh",
+    "um",
+    "erm",
+    "hmm",
+    "like",
+    "you know",
+    "äh",
+    "aeh",
+    "ähm",
+    "aehm",
+    "hm",
+    "also",
+    "sozusagen",
+)
 
 
 @dataclass(slots=True)
@@ -26,12 +53,25 @@ class FormattedText:
 
 
 class OutputFormatter:
-    def format(self, text: str, mode: str) -> FormattedText:
+    def format(
+        self,
+        text: str,
+        mode: str,
+        *,
+        remove_fillers: bool = True,
+        replacements: dict[str, str] | None = None,
+        snippets: dict[str, str] | None = None,
+    ) -> FormattedText:
         normalized = self._normalize_whitespace(text)
         if not normalized:
             return FormattedText(text="", applied_commands=[])
 
-        replaced, commands = self._apply_voice_commands(normalized)
+        result = normalized
+        result = self._apply_phrase_map(result, snippets or {})
+        result = self._apply_phrase_map(result, replacements or {})
+        if remove_fillers:
+            result = self._remove_fillers(result)
+        replaced, commands = self._apply_voice_commands(result)
 
         if mode == "email":
             final_text = self._format_email(replaced)
@@ -48,7 +88,7 @@ class OutputFormatter:
         commands_found: list[str] = []
         result = text
 
-        for spoken, replacement in sorted(VOICE_COMMANDS.items(), key=lambda item: len(item[0]), reverse=True):
+        for spoken, replacement in sorted(SPOKEN_COMMANDS.items(), key=lambda item: len(item[0]), reverse=True):
             pattern = re.compile(rf"(?<!\S){re.escape(spoken)}(?!\S)", flags=re.IGNORECASE)
             if pattern.search(result):
                 commands_found.append(spoken)
@@ -88,6 +128,26 @@ class OutputFormatter:
 
     def _normalize_whitespace(self, text: str) -> str:
         return re.sub(r"\s+", " ", text).strip()
+
+    def _apply_phrase_map(self, text: str, mapping: dict[str, str]) -> str:
+        result = text
+        for spoken, replacement in sorted(mapping.items(), key=lambda item: len(item[0]), reverse=True):
+            spoken = spoken.strip()
+            if not spoken:
+                continue
+            pattern = re.compile(rf"(?<!\S){re.escape(spoken)}(?!\S)", flags=re.IGNORECASE)
+            result = pattern.sub(replacement, result)
+        return result
+
+    def _remove_fillers(self, text: str) -> str:
+        result = text
+        for filler in sorted(FILLER_WORDS, key=len, reverse=True):
+            pattern = re.compile(rf"(?<!\S){re.escape(filler)}(?!\S)", flags=re.IGNORECASE)
+            result = pattern.sub(" ", result)
+        result = re.sub(r"[ \t]{2,}", " ", result)
+        result = re.sub(r"[ \t]+\n", "\n", result)
+        result = re.sub(r"\n[ \t]+", "\n", result)
+        return result.strip()
 
     def _tighten_punctuation(self, text: str) -> str:
         text = re.sub(r"\s+([,.;:!?])", r"\1", text)

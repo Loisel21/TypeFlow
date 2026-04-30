@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 
@@ -21,6 +21,10 @@ class AppConfig:
     paste_mode: str = "typing"
     output_mode: str = "normal"
     start_minimized: bool = False
+    privacy_mode: bool = True
+    remove_fillers: bool = True
+    custom_replacements: dict[str, str] = field(default_factory=lambda: {"type flow": "TypeFlow"})
+    snippets: dict[str, str] = field(default_factory=dict)
 
     @classmethod
     def load(cls) -> "AppConfig":

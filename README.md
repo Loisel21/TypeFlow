@@ -10,6 +10,8 @@ Built as a local-first MVP inspired by tools like Voicely:
 - insertion into the active Windows app
 - background / tray workflow
 - formatting modes for different writing contexts
+- personal replacements and snippets
+- local-first privacy mode and text cleanup
 
 ## What It Does
 
@@ -20,6 +22,9 @@ TypeFlow lets you:
 - switch between `normal`, `email`, `chat`, and `code` output modes
 - use spoken formatting commands like punctuation and line breaks
 - choose between direct typing and clipboard-based insertion
+- maintain a personal lexicon for names, brands, and domain terms
+- trigger reusable snippets by voice
+- clean up filler words automatically
 
 ## Current Features
 
@@ -29,12 +34,16 @@ TypeFlow lets you:
 - tray app for background usage
 - settings window with saved preferences
 - log file for debugging focus and insertion
+- privacy mode toggle for local-first workflow
+- automatic filler-word cleanup
+- personal lexicon replacements
+- voice-triggered snippets
 - output modes:
   - `normal`
   - `email`
   - `chat`
   - `code`
-- spoken commands in the current MVP are German:
+- spoken commands currently support German and core English variants:
   - `Punkt`
   - `Komma`
   - `Fragezeichen`
@@ -49,11 +58,11 @@ TypeFlow lets you:
 
 Planned next steps:
 
-1. personal dictionary for names and domain-specific terms
-2. snippets / reusable text blocks
-3. richer voice actions like deleting or sending
-4. optional cloud mode
-5. packaged Windows `.exe`
+1. richer voice actions like deleting, selecting, or sending
+2. better code dictation vocabulary
+3. optional cloud enhancement mode
+4. packaged Windows `.exe`
+5. app icon, onboarding, and installer polish
 
 ## Requirements
 
@@ -98,6 +107,26 @@ Or on Windows:
 - `chat`: lighter conversational formatting
 - `code`: direct output with support for line breaks and tabs
 
+## Personalization
+
+TypeFlow now supports two Voicely-like personalization layers:
+
+- `Lexicon replacements`: spoken phrase => preferred written phrase
+- `Snippets`: spoken trigger => inserted reusable text
+
+Examples:
+
+```text
+type flow => TypeFlow
+open ai => OpenAI
+```
+
+```text
+my signature => Best regards,\nLuis
+```
+
+You can edit both in the Settings window.
+
 ## Spoken Formatting Example
 
 Input:
@@ -127,6 +156,7 @@ Useful for debugging:
 - active window during insertion
 - insertion mode used
 - focus or paste issues
+- applied commands and formatter behavior
 
 ## Project Structure
 
@@ -144,4 +174,4 @@ Useful for debugging:
 
 ## Status
 
-TypeFlow is currently an MVP focused on reliable dictation and insertion on Windows.
+TypeFlow is currently an MVP focused on reliable dictation, insertion, and local-first workflow on Windows.

@@ -27,6 +27,7 @@ class TypeFlowUI:
         self._status = tk.StringVar(value="Ready")
         self._last_text = tk.StringVar(value="No transcription yet")
         self._paste_mode = tk.StringVar(value="Insert mode: Direct typing")
+        self._privacy_mode = tk.StringVar(value="Privacy mode: Local only")
         self._mode_var = tk.StringVar(value=initial_mode)
         self._hotkey_var = tk.StringVar(value=f"Global hotkey: {hotkey}")
         self._settings_window: tk.Toplevel | None = None
@@ -72,9 +73,10 @@ class TypeFlowUI:
             font=("Segoe UI", 10),
         ).pack(anchor="w", pady=(10, 14))
         tk.Label(container, textvariable=self._paste_mode, font=("Segoe UI", 9)).pack(anchor="w", pady=(0, 6))
+        tk.Label(container, textvariable=self._privacy_mode, font=("Segoe UI", 9)).pack(anchor="w", pady=(0, 6))
         tk.Label(
             container,
-            text="Spoken commands in the current MVP are German: Punkt, Komma, Fragezeichen, Ausrufezeichen, Doppelpunkt, Semikolon, neue Zeile, neuer Absatz, Tab",
+            text="Spoken commands supported right now: Punkt, Komma, Fragezeichen, Ausrufezeichen, Doppelpunkt, Semikolon, neue Zeile, neuer Absatz, Tab, plus English equivalents.",
             wraplength=510,
             justify="left",
             font=("Segoe UI", 9),
@@ -136,6 +138,11 @@ class TypeFlowUI:
         self._mode_var.set(output_mode)
         self._root.update_idletasks()
 
+    def set_privacy_mode(self, privacy_mode: bool) -> None:
+        label = "Local only" if privacy_mode else "Cloud-ready workflow"
+        self._privacy_mode.set(f"Privacy mode: {label}")
+        self._root.update_idletasks()
+
     def set_hotkey(self, hotkey: str) -> None:
         self._hotkey_var.set(f"Global hotkey: {hotkey}")
         self._root.update_idletasks()
@@ -162,7 +169,7 @@ class TypeFlowUI:
 
         window = tk.Toplevel(self._root)
         window.title("TypeFlow Settings")
-        window.geometry("420x320")
+        window.geometry("660x680")
         window.resizable(False, False)
         window.transient(self._root)
         window.grab_set()
@@ -172,6 +179,8 @@ class TypeFlowUI:
         language_var = tk.StringVar(value=config.language)
         paste_mode_var = tk.StringVar(value=config.paste_mode)
         start_minimized_var = tk.BooleanVar(value=config.start_minimized)
+        privacy_mode_var = tk.BooleanVar(value=config.privacy_mode)
+        remove_fillers_var = tk.BooleanVar(value=config.remove_fillers)
 
         content = tk.Frame(window, padx=18, pady=18)
         content.pack(fill="both", expand=True)
@@ -188,10 +197,40 @@ class TypeFlowUI:
             variable=start_minimized_var,
             font=("Segoe UI", 9),
         ).pack(anchor="w")
+        tk.Checkbutton(
+            toggle_row,
+            text="Privacy mode: keep the workflow local-first",
+            variable=privacy_mode_var,
+            font=("Segoe UI", 9),
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            toggle_row,
+            text="Remove filler words automatically",
+            variable=remove_fillers_var,
+            font=("Segoe UI", 9),
+        ).pack(anchor="w")
+
+        replacements_var = tk.Text(content, height=8, width=70, font=("Consolas", 9))
+        replacements_var.insert("1.0", self._format_mapping(config.custom_replacements))
+        self._add_labeled_text(
+            content,
+            "Lexicon replacements",
+            "Use one line per replacement: spoken phrase => written phrase",
+            replacements_var,
+        )
+
+        snippets_var = tk.Text(content, height=8, width=70, font=("Consolas", 9))
+        snippets_var.insert("1.0", self._format_mapping(config.snippets))
+        self._add_labeled_text(
+            content,
+            "Snippets",
+            "Use one line per snippet: spoken trigger => inserted text",
+            snippets_var,
+        )
 
         info = (
-            "Note: hotkey changes update the global registration immediately. "
-            "You can still choose the output mode directly in the main window."
+            "This makes TypeFlow feel closer to Voicely: personal replacements, snippets, "
+            "local privacy mode, and automatic cleanup can all be tuned here."
         )
         tk.Label(content, text=info, wraplength=360, justify="left", font=("Segoe UI", 9)).pack(
             anchor="w",
@@ -214,6 +253,10 @@ class TypeFlowUI:
                 paste_mode=paste_mode_var.get(),
                 output_mode=config.output_mode,
                 start_minimized=start_minimized_var.get(),
+                privacy_mode=privacy_mode_var.get(),
+                remove_fillers=remove_fillers_var.get(),
+                custom_replacements=self._parse_mapping(replacements_var.get("1.0", "end")),
+                snippets=self._parse_mapping(snippets_var.get("1.0", "end")),
             )
             on_save(updated_config)
             window.destroy()
@@ -256,3 +299,33 @@ class TypeFlowUI:
         menu = tk.OptionMenu(row, variable, *values)
         menu.config(width=22, font=("Segoe UI", 9))
         menu.pack(side="left")
+
+    def _add_labeled_text(self, parent: tk.Widget, label: str, helper: str, widget: tk.Text) -> None:
+        frame = tk.Frame(parent)
+        frame.pack(fill="x", pady=(14, 0))
+        tk.Label(frame, text=label, anchor="w", font=("Segoe UI", 9, "bold")).pack(anchor="w")
+        tk.Label(frame, text=helper, anchor="w", justify="left", font=("Segoe UI", 8)).pack(anchor="w", pady=(2, 6))
+        widget.pack(in_=frame, fill="x")
+
+    def _parse_mapping(self, raw_text: str) -> dict[str, str]:
+        mapping: dict[str, str] = {}
+        for raw_line in raw_text.splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if "=>" not in line:
+                continue
+            spoken, written = line.split("=>", 1)
+            spoken = spoken.strip()
+            written = written.strip().replace("\\n", "\n").replace("\\t", "\t")
+            if spoken and written:
+                mapping[spoken] = written
+        return mapping
+
+    def _format_mapping(self, mapping: dict[str, str]) -> str:
+        if not mapping:
+            return ""
+        return "\n".join(
+            f"{spoken} => {written.replace(chr(10), '\\n').replace(chr(9), '\\t')}"
+            for spoken, written in mapping.items()
+        )

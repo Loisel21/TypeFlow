@@ -59,6 +59,7 @@ class TypeFlowApp:
         self.ui.set_paste_mode(self.inserter.paste_mode)
         self.ui.set_output_mode(self.config.output_mode)
         self.ui.set_hotkey(self.config.hotkey)
+        self.ui.set_privacy_mode(self.config.privacy_mode)
         if self.config.start_minimized:
             self.ui.hide()
         self.ui.after(100, self._drain_events)
@@ -112,6 +113,7 @@ class TypeFlowApp:
         self.transcriber.language = self.config.language
         self.ui.set_paste_mode(self.config.paste_mode)
         self.ui.set_hotkey(self.config.hotkey)
+        self.ui.set_privacy_mode(self.config.privacy_mode)
 
         if self.config.hotkey != old_hotkey:
             self.hotkey.stop()
@@ -120,12 +122,16 @@ class TypeFlowApp:
             self.logger.info("Hotkey updated: %s", self.config.hotkey)
 
         self.logger.info(
-            "Settings saved. hotkey=%s language=%s paste_mode=%s output_mode=%s start_minimized=%s",
+            "Settings saved. hotkey=%s language=%s paste_mode=%s output_mode=%s start_minimized=%s privacy_mode=%s remove_fillers=%s replacements=%s snippets=%s",
             self.config.hotkey,
             self.config.language,
             self.config.paste_mode,
             self.config.output_mode,
             self.config.start_minimized,
+            self.config.privacy_mode,
+            self.config.remove_fillers,
+            len(self.config.custom_replacements),
+            len(self.config.snippets),
         )
         self.ui.set_status("Settings saved")
 
@@ -139,7 +145,13 @@ class TypeFlowApp:
     def _process_audio(self, audio) -> None:  # noqa: ANN001
         try:
             result = self.transcriber.transcribe(audio)
-            formatted = self.formatter.format(result.text, self.config.output_mode)
+            formatted = self.formatter.format(
+                result.text,
+                self.config.output_mode,
+                remove_fillers=self.config.remove_fillers,
+                replacements=self.config.custom_replacements,
+                snippets=self.config.snippets,
+            )
             self._events.put(("transcript", formatted.text or "No speech detected"))
             if result.text:
                 insert_result = self.inserter.insert(formatted.text, target_window=self._target_window)
