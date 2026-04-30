@@ -28,7 +28,7 @@ class TextInserter:
 
     def insert(self, text: str, target_window: int | None = None) -> InsertResult:
         if not text:
-            return InsertResult(ok=False, method="none", detail="Kein Text zum Einfuegen")
+            return InsertResult(ok=False, method="none", detail="No text to insert")
 
         previous_clipboard = self._safe_paste()
         try:
@@ -38,7 +38,7 @@ class TextInserter:
             self._release_modifier_keys()
             active_window = self.get_active_window()
             self._logger.info(
-                "Einfuegen gestartet. target_window=%s active_window=%s mode=%s",
+                "Insertion started. target_window=%s active_window=%s mode=%s",
                 target_window,
                 active_window,
                 self._paste_mode,
@@ -54,9 +54,9 @@ class TextInserter:
                 self._paste_clipboard(text)
                 method = "clipboard"
             time.sleep(0.35)
-            return InsertResult(ok=True, method=method, detail="Text gesendet")
+            return InsertResult(ok=True, method=method, detail="Text sent")
         except Exception as exc:  # noqa: BLE001
-            self._logger.exception("Einfuegen fehlgeschlagen: %s", exc)
+            self._logger.exception("Insertion failed: %s", exc)
             return InsertResult(ok=False, method=self._paste_mode, detail=str(exc))
         finally:
             if previous_clipboard is not None:
@@ -86,7 +86,7 @@ class TextInserter:
 
     def set_paste_mode(self, paste_mode: str) -> None:
         self._paste_mode = paste_mode
-        self._logger.info("Einfuegemodus aktualisiert: %s", paste_mode)
+        self._logger.info("Insert mode updated: %s", paste_mode)
 
     def _paste_clipboard(self, text: str) -> None:
         pyperclip.copy(text)

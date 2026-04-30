@@ -17,9 +17,9 @@ class TypeFlowTray:
             icon=self._build_icon(),
             title="TypeFlow",
             menu=pystray.Menu(
-                pystray.MenuItem("Fenster anzeigen", self._handle_show),
-                pystray.MenuItem("In Hintergrund senden", self._handle_hide),
-                pystray.MenuItem("Beenden", self._handle_exit),
+                pystray.MenuItem("Show window", self._handle_show),
+                pystray.MenuItem("Send to background", self._handle_hide),
+                pystray.MenuItem("Exit", self._handle_exit),
             ),
         )
         self._thread: threading.Thread | None = None

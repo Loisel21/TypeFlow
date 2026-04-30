@@ -24,11 +24,11 @@ class TypeFlowUI:
         self._root.resizable(False, False)
         self._root.protocol("WM_DELETE_WINDOW", on_hide)
 
-        self._status = tk.StringVar(value="Bereit")
-        self._last_text = tk.StringVar(value="Noch keine Transkription")
-        self._paste_mode = tk.StringVar(value="Einfuegemodus: Direktes Tippen")
+        self._status = tk.StringVar(value="Ready")
+        self._last_text = tk.StringVar(value="No transcription yet")
+        self._paste_mode = tk.StringVar(value="Insert mode: Direct typing")
         self._mode_var = tk.StringVar(value=initial_mode)
-        self._hotkey_var = tk.StringVar(value=f"Globaler Hotkey: {hotkey}")
+        self._hotkey_var = tk.StringVar(value=f"Global hotkey: {hotkey}")
         self._settings_window: tk.Toplevel | None = None
 
         container = tk.Frame(self._root, padx=18, pady=18)
@@ -42,7 +42,7 @@ class TypeFlowUI:
         ).pack(anchor="w", pady=(6, 10))
         tk.Label(
             container,
-            text="Voicely-Style Workflow: App im Hintergrund lassen, im Ziel-Textfeld bleiben, Hotkey nutzen.",
+            text="Voicely-style workflow: keep the app in the background, stay in the target text field, and use the hotkey.",
             wraplength=510,
             justify="left",
             font=("Segoe UI", 9),
@@ -50,7 +50,7 @@ class TypeFlowUI:
 
         mode_row = tk.Frame(container)
         mode_row.pack(anchor="w", pady=(0, 12))
-        tk.Label(mode_row, text="Modus", font=("Segoe UI", 10, "bold")).pack(side="left")
+        tk.Label(mode_row, text="Mode", font=("Segoe UI", 10, "bold")).pack(side="left")
         mode_menu = tk.OptionMenu(
             mode_row,
             self._mode_var,
@@ -74,7 +74,7 @@ class TypeFlowUI:
         tk.Label(container, textvariable=self._paste_mode, font=("Segoe UI", 9)).pack(anchor="w", pady=(0, 6))
         tk.Label(
             container,
-            text="Sprachbefehle: Punkt, Komma, Fragezeichen, Ausrufezeichen, Doppelpunkt, Semikolon, neue Zeile, neuer Absatz, Tab",
+            text="Spoken commands in the current MVP are German: Punkt, Komma, Fragezeichen, Ausrufezeichen, Doppelpunkt, Semikolon, neue Zeile, neuer Absatz, Tab",
             wraplength=510,
             justify="left",
             font=("Segoe UI", 9),
@@ -85,7 +85,7 @@ class TypeFlowUI:
 
         tk.Button(
             button_row,
-            text="Aufnahme starten / stoppen",
+            text="Start / stop recording",
             command=on_toggle,
             font=("Segoe UI", 10),
             padx=12,
@@ -93,7 +93,7 @@ class TypeFlowUI:
         ).pack(side="left")
         tk.Button(
             button_row,
-            text="Einstellungen",
+            text="Settings",
             command=on_open_settings,
             font=("Segoe UI", 10),
             padx=12,
@@ -101,7 +101,7 @@ class TypeFlowUI:
         ).pack(side="left", padx=(10, 0))
         tk.Button(
             button_row,
-            text="In den Hintergrund",
+            text="Send to background",
             command=on_hide,
             font=("Segoe UI", 10),
             padx=12,
@@ -109,7 +109,7 @@ class TypeFlowUI:
         ).pack(side="left", padx=(10, 0))
         tk.Button(
             button_row,
-            text="Beenden",
+            text="Exit",
             command=on_exit,
             font=("Segoe UI", 10),
             padx=12,
@@ -121,15 +121,15 @@ class TypeFlowUI:
         self._root.update_idletasks()
 
     def set_transcript(self, text: str) -> None:
-        self._last_text.set(text or "Keine Sprache erkannt")
+        self._last_text.set(text or "No speech detected")
         self._root.update_idletasks()
 
     def after(self, delay_ms: int, callback: Callable[[], None]) -> None:
         self._root.after(delay_ms, callback)
 
     def set_paste_mode(self, paste_mode: str) -> None:
-        label = "Zwischenablage" if paste_mode == "clipboard" else "Direktes Tippen"
-        self._paste_mode.set(f"Einfuegemodus: {label}")
+        label = "Clipboard" if paste_mode == "clipboard" else "Direct typing"
+        self._paste_mode.set(f"Insert mode: {label}")
         self._root.update_idletasks()
 
     def set_output_mode(self, output_mode: str) -> None:
@@ -137,7 +137,7 @@ class TypeFlowUI:
         self._root.update_idletasks()
 
     def set_hotkey(self, hotkey: str) -> None:
-        self._hotkey_var.set(f"Globaler Hotkey: {hotkey}")
+        self._hotkey_var.set(f"Global hotkey: {hotkey}")
         self._root.update_idletasks()
 
     def show(self) -> None:
@@ -161,7 +161,7 @@ class TypeFlowUI:
             return
 
         window = tk.Toplevel(self._root)
-        window.title("TypeFlow Einstellungen")
+        window.title("TypeFlow Settings")
         window.geometry("420x320")
         window.resizable(False, False)
         window.transient(self._root)
@@ -177,21 +177,21 @@ class TypeFlowUI:
         content.pack(fill="both", expand=True)
 
         self._add_labeled_entry(content, "Hotkey", hotkey_var)
-        self._add_labeled_menu(content, "Sprache", language_var, ("de", "en"))
-        self._add_labeled_menu(content, "Einfuegemodus", paste_mode_var, ("typing", "clipboard"))
+        self._add_labeled_menu(content, "Language", language_var, ("de", "en"))
+        self._add_labeled_menu(content, "Insert mode", paste_mode_var, ("typing", "clipboard"))
 
         toggle_row = tk.Frame(content)
         toggle_row.pack(fill="x", pady=(12, 0))
         tk.Checkbutton(
             toggle_row,
-            text="Beim Start minimiert in den Hintergrund gehen",
+            text="Start minimized in the background",
             variable=start_minimized_var,
             font=("Segoe UI", 9),
         ).pack(anchor="w")
 
         info = (
-            "Hinweis: Bei Hotkey-Aenderungen wird die globale Registrierung sofort aktualisiert. "
-            "Sprachmodus waehlst du weiter direkt im Hauptfenster."
+            "Note: hotkey changes update the global registration immediately. "
+            "You can still choose the output mode directly in the main window."
         )
         tk.Label(content, text=info, wraplength=360, justify="left", font=("Segoe UI", 9)).pack(
             anchor="w",
@@ -218,10 +218,10 @@ class TypeFlowUI:
             on_save(updated_config)
             window.destroy()
 
-        tk.Button(button_row, text="Abbrechen", command=window.destroy, font=("Segoe UI", 9), padx=12, pady=5).pack(
+        tk.Button(button_row, text="Cancel", command=window.destroy, font=("Segoe UI", 9), padx=12, pady=5).pack(
             side="left"
         )
-        tk.Button(button_row, text="Speichern", command=save_settings, font=("Segoe UI", 9), padx=12, pady=5).pack(
+        tk.Button(button_row, text="Save", command=save_settings, font=("Segoe UI", 9), padx=12, pady=5).pack(
             side="left",
             padx=(10, 0),
         )

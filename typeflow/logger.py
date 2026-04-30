@@ -29,5 +29,5 @@ def setup_logger() -> logging.Logger:
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
     logger.propagate = False
-    logger.info("Logger initialisiert. Log-Datei: %s", log_file)
+    logger.info("Logger initialized. Log file: %s", log_file)
     return logger
