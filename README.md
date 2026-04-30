@@ -34,7 +34,7 @@ TypeFlow lets you:
   - `email`
   - `chat`
   - `code`
-- spoken commands:
+- spoken commands in the current MVP are German:
   - `Punkt`
   - `Komma`
   - `Fragezeichen`
