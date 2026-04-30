@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from tkinter import ttk
 from collections.abc import Callable
 
 from typeflow.config import AppConfig
@@ -20,7 +21,7 @@ class TypeFlowUI:
         self._on_mode_change = on_mode_change
         self._root = tk.Tk()
         self._root.title("TypeFlow")
-        self._root.geometry("560x360")
+        self._root.geometry("620x420")
         self._root.resizable(False, False)
         self._root.protocol("WM_DELETE_WINDOW", on_hide)
 
@@ -33,26 +34,37 @@ class TypeFlowUI:
         self._hotkey_var = tk.StringVar(value=f"Global hotkey: {hotkey}")
         self._settings_window: tk.Toplevel | None = None
 
-        container = tk.Frame(self._root, padx=18, pady=18)
+        container = tk.Frame(self._root, padx=22, pady=20, bg="#f4f7fb")
         container.pack(fill="both", expand=True)
+        self._root.configure(bg="#f4f7fb")
 
-        tk.Label(container, text="TypeFlow", font=("Segoe UI", 18, "bold")).pack(anchor="w")
+        hero = tk.Frame(container, bg="#f4f7fb")
+        hero.pack(fill="x")
+
+        tk.Label(hero, text="TypeFlow", font=("Segoe UI", 24, "bold"), bg="#f4f7fb", fg="#16324f").pack(anchor="w")
         tk.Label(
-            container,
+            hero,
             textvariable=self._hotkey_var,
             font=("Segoe UI", 10),
+            bg="#f4f7fb",
+            fg="#496179",
         ).pack(anchor="w", pady=(6, 10))
         tk.Label(
-            container,
+            hero,
             text="Voicely-style workflow: keep the app in the background, stay in the target text field, and use the hotkey.",
             wraplength=510,
             justify="left",
             font=("Segoe UI", 9),
-        ).pack(anchor="w", pady=(0, 14))
+            bg="#f4f7fb",
+            fg="#5e7488",
+        ).pack(anchor="w", pady=(0, 16))
 
-        mode_row = tk.Frame(container)
+        controls_card = tk.Frame(container, bg="white", bd=0, highlightthickness=1, highlightbackground="#dbe3ec")
+        controls_card.pack(fill="x", pady=(0, 14))
+
+        mode_row = tk.Frame(controls_card, bg="white", padx=16, pady=14)
         mode_row.pack(anchor="w", pady=(0, 12))
-        tk.Label(mode_row, text="Mode", font=("Segoe UI", 10, "bold")).pack(side="left")
+        tk.Label(mode_row, text="Mode", font=("Segoe UI", 10, "bold"), bg="white", fg="#16324f").pack(side="left")
         mode_menu = tk.OptionMenu(
             mode_row,
             self._mode_var,
@@ -65,27 +77,45 @@ class TypeFlowUI:
         mode_menu.config(width=12, font=("Segoe UI", 9))
         mode_menu.pack(side="left", padx=(12, 0))
 
-        tk.Label(container, textvariable=self._status, font=("Segoe UI", 12, "bold")).pack(anchor="w")
+        status_card = tk.Frame(container, bg="white", bd=0, highlightthickness=1, highlightbackground="#dbe3ec")
+        status_card.pack(fill="both", expand=True)
+
+        tk.Label(status_card, text="Status", font=("Segoe UI", 10, "bold"), bg="white", fg="#16324f").pack(
+            anchor="w",
+            padx=16,
+            pady=(14, 6),
+        )
+        tk.Label(status_card, textvariable=self._status, font=("Segoe UI", 13, "bold"), bg="white", fg="#0f766e").pack(
+            anchor="w",
+            padx=16,
+        )
         tk.Label(
-            container,
+            status_card,
             textvariable=self._last_text,
             wraplength=510,
             justify="left",
             font=("Segoe UI", 10),
-        ).pack(anchor="w", pady=(10, 14))
-        tk.Label(container, textvariable=self._paste_mode, font=("Segoe UI", 9)).pack(anchor="w", pady=(0, 6))
-        tk.Label(container, textvariable=self._privacy_mode, font=("Segoe UI", 9)).pack(anchor="w", pady=(0, 6))
-        tk.Label(container, textvariable=self._translation_mode, font=("Segoe UI", 9)).pack(anchor="w", pady=(0, 6))
+            bg="white",
+            fg="#203040",
+        ).pack(anchor="w", padx=16, pady=(10, 12))
+
+        meta_row = tk.Frame(status_card, bg="white")
+        meta_row.pack(fill="x", padx=16, pady=(0, 10))
+        tk.Label(meta_row, textvariable=self._paste_mode, font=("Segoe UI", 9), bg="white", fg="#5e7488").pack(anchor="w")
+        tk.Label(meta_row, textvariable=self._privacy_mode, font=("Segoe UI", 9), bg="white", fg="#5e7488").pack(anchor="w", pady=(3, 0))
+        tk.Label(meta_row, textvariable=self._translation_mode, font=("Segoe UI", 9), bg="white", fg="#5e7488").pack(anchor="w", pady=(3, 0))
         tk.Label(
-            container,
+            status_card,
             text="Spoken commands supported right now: Punkt, Komma, Fragezeichen, Ausrufezeichen, Doppelpunkt, Semikolon, neue Zeile, neuer Absatz, Tab, plus English equivalents.",
             wraplength=510,
             justify="left",
             font=("Segoe UI", 9),
-        ).pack(anchor="w", pady=(0, 16))
+            bg="white",
+            fg="#5e7488",
+        ).pack(anchor="w", padx=16, pady=(0, 16))
 
-        button_row = tk.Frame(container)
-        button_row.pack(anchor="w")
+        button_row = tk.Frame(container, bg="#f4f7fb")
+        button_row.pack(anchor="w", pady=(14, 0))
 
         tk.Button(
             button_row,
@@ -214,7 +244,7 @@ class TypeFlowUI:
         scrollbar.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
 
-        content = tk.Frame(canvas, padx=18, pady=18)
+        content = tk.Frame(canvas, padx=18, pady=18, bg="#f7f9fc")
         content_window = canvas.create_window((0, 0), window=content, anchor="nw")
 
         def sync_scroll_region(event) -> None:  # noqa: ANN001
@@ -236,69 +266,105 @@ class TypeFlowUI:
 
         window.protocol("WM_DELETE_WINDOW", close_settings)
 
-        self._add_labeled_entry(content, "Hotkey", hotkey_var)
-        self._add_labeled_menu(content, "Language", language_var, ("de", "en"))
-        self._add_labeled_menu(content, "Insert mode", paste_mode_var, ("typing", "clipboard"))
-        self._add_labeled_menu(content, "Translation", translation_mode_var, ("off", "de_to_en", "en_to_de"))
+        header = tk.Label(
+            content,
+            text="Settings",
+            font=("Segoe UI", 18, "bold"),
+            bg="#f7f9fc",
+            fg="#16324f",
+        )
+        header.pack(anchor="w", pady=(0, 10))
 
-        toggle_row = tk.Frame(content)
-        toggle_row.pack(fill="x", pady=(12, 0))
+        notebook = ttk.Notebook(content)
+        notebook.pack(fill="both", expand=True)
+
+        general_tab = tk.Frame(notebook, bg="white", padx=18, pady=18)
+        translation_tab = tk.Frame(notebook, bg="white", padx=18, pady=18)
+        personalization_tab = tk.Frame(notebook, bg="white", padx=18, pady=18)
+        recording_tab = tk.Frame(notebook, bg="white", padx=18, pady=18)
+
+        notebook.add(general_tab, text="General")
+        notebook.add(translation_tab, text="Translation")
+        notebook.add(personalization_tab, text="Personalization")
+        notebook.add(recording_tab, text="Recording")
+
+        self._add_labeled_entry(general_tab, "Hotkey", hotkey_var)
+        self._add_labeled_menu(general_tab, "Language", language_var, ("de", "en"))
+        self._add_labeled_menu(general_tab, "Insert mode", paste_mode_var, ("typing", "clipboard"))
+
+        general_toggle_row = tk.Frame(general_tab, bg="white")
+        general_toggle_row.pack(fill="x", pady=(12, 0))
         tk.Checkbutton(
-            toggle_row,
+            general_toggle_row,
             text="Start minimized in the background",
             variable=start_minimized_var,
             font=("Segoe UI", 9),
+            bg="white",
         ).pack(anchor="w")
         tk.Checkbutton(
-            toggle_row,
+            general_toggle_row,
             text="Privacy mode: keep the workflow local-first",
             variable=privacy_mode_var,
             font=("Segoe UI", 9),
-        ).pack(anchor="w")
-        tk.Checkbutton(
-            toggle_row,
-            text="Remove filler words automatically",
-            variable=remove_fillers_var,
-            font=("Segoe UI", 9),
-        ).pack(anchor="w")
-        tk.Checkbutton(
-            toggle_row,
-            text="Stop recording automatically after silence",
-            variable=auto_stop_enabled_var,
-            font=("Segoe UI", 9),
+            bg="white",
         ).pack(anchor="w")
 
-        self._add_labeled_entry(content, "Silence timeout (s)", silence_timeout_var)
-        self._add_labeled_entry(content, "Max recording (s)", max_recording_var)
+        self._add_labeled_menu(translation_tab, "Translation", translation_mode_var, ("off", "de_to_en", "en_to_de"))
+        tk.Label(
+            translation_tab,
+            text="Translation runs after formatting and before insertion. Keep it off if you want strict local-only behavior.",
+            wraplength=max(420, width - 220),
+            justify="left",
+            font=("Segoe UI", 9),
+            bg="white",
+            fg="#5e7488",
+        ).pack(anchor="w", pady=(12, 0))
 
-        replacements_var = tk.Text(content, height=8, width=70, font=("Consolas", 9))
+        replacements_var = tk.Text(personalization_tab, height=8, width=70, font=("Consolas", 9))
         replacements_var.insert("1.0", self._format_mapping(config.custom_replacements))
         self._add_labeled_text(
-            content,
+            personalization_tab,
             "Lexicon replacements",
             "Use one line per replacement: spoken phrase => written phrase",
             replacements_var,
         )
 
-        snippets_var = tk.Text(content, height=8, width=70, font=("Consolas", 9))
+        snippets_var = tk.Text(personalization_tab, height=8, width=70, font=("Consolas", 9))
         snippets_var.insert("1.0", self._format_mapping(config.snippets))
         self._add_labeled_text(
-            content,
+            personalization_tab,
             "Snippets",
             "Use one line per snippet: spoken trigger => inserted text",
             snippets_var,
         )
 
-        info = (
-            "This makes TypeFlow feel closer to Voicely: personal replacements, snippets, "
-            "local privacy mode, and automatic cleanup can all be tuned here."
-        )
-        tk.Label(content, text=info, wraplength=max(420, width - 220), justify="left", font=("Segoe UI", 9)).pack(
+        recording_toggle_row = tk.Frame(recording_tab, bg="white")
+        recording_toggle_row.pack(fill="x", pady=(0, 8))
+        tk.Checkbutton(
+            recording_toggle_row,
+            text="Remove filler words automatically",
+            variable=remove_fillers_var,
+            font=("Segoe UI", 9),
+            bg="white",
+        ).pack(anchor="w")
+        tk.Checkbutton(
+            recording_toggle_row,
+            text="Stop recording automatically after silence",
+            variable=auto_stop_enabled_var,
+            font=("Segoe UI", 9),
+            bg="white",
+        ).pack(anchor="w")
+
+        self._add_labeled_entry(recording_tab, "Silence timeout (s)", silence_timeout_var)
+        self._add_labeled_entry(recording_tab, "Max recording (s)", max_recording_var)
+
+        info = "TypeFlow is now organized more like a product settings surface: core preferences, translation, personalization, and recording behavior are separated for faster access."
+        tk.Label(content, text=info, wraplength=max(420, width - 220), justify="left", font=("Segoe UI", 9), bg="#f7f9fc", fg="#5e7488").pack(
             anchor="w",
             pady=(18, 18),
         )
 
-        button_row = tk.Frame(content)
+        button_row = tk.Frame(content, bg="#f7f9fc")
         button_row.pack(anchor="e")
 
         def save_settings() -> None:
@@ -347,9 +413,9 @@ class TypeFlowUI:
         self._on_mode_change(value)
 
     def _add_labeled_entry(self, parent: tk.Widget, label: str, variable: tk.StringVar) -> None:
-        row = tk.Frame(parent)
+        row = tk.Frame(parent, bg=parent.cget("bg"))
         row.pack(fill="x", pady=(0, 12))
-        tk.Label(row, text=label, width=14, anchor="w", font=("Segoe UI", 9, "bold")).pack(side="left")
+        tk.Label(row, text=label, width=16, anchor="w", font=("Segoe UI", 9, "bold"), bg=parent.cget("bg"), fg="#16324f").pack(side="left")
         tk.Entry(row, textvariable=variable, font=("Segoe UI", 9), width=28).pack(side="left", fill="x", expand=True)
 
     def _add_labeled_menu(
@@ -359,18 +425,18 @@ class TypeFlowUI:
         variable: tk.StringVar,
         values: tuple[str, ...],
     ) -> None:
-        row = tk.Frame(parent)
+        row = tk.Frame(parent, bg=parent.cget("bg"))
         row.pack(fill="x", pady=(0, 12))
-        tk.Label(row, text=label, width=14, anchor="w", font=("Segoe UI", 9, "bold")).pack(side="left")
+        tk.Label(row, text=label, width=16, anchor="w", font=("Segoe UI", 9, "bold"), bg=parent.cget("bg"), fg="#16324f").pack(side="left")
         menu = tk.OptionMenu(row, variable, *values)
         menu.config(width=22, font=("Segoe UI", 9))
         menu.pack(side="left")
 
     def _add_labeled_text(self, parent: tk.Widget, label: str, helper: str, widget: tk.Text) -> None:
-        frame = tk.Frame(parent)
+        frame = tk.Frame(parent, bg=parent.cget("bg"))
         frame.pack(fill="x", pady=(14, 0))
-        tk.Label(frame, text=label, anchor="w", font=("Segoe UI", 9, "bold")).pack(anchor="w")
-        tk.Label(frame, text=helper, anchor="w", justify="left", font=("Segoe UI", 8)).pack(anchor="w", pady=(2, 6))
+        tk.Label(frame, text=label, anchor="w", font=("Segoe UI", 9, "bold"), bg=parent.cget("bg"), fg="#16324f").pack(anchor="w")
+        tk.Label(frame, text=helper, anchor="w", justify="left", font=("Segoe UI", 8), bg=parent.cget("bg"), fg="#5e7488").pack(anchor="w", pady=(2, 6))
         widget.pack(in_=frame, fill="x")
 
     def _parse_mapping(self, raw_text: str) -> dict[str, str]:
