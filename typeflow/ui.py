@@ -19,6 +19,8 @@ class TypeFlowUI:
         on_hide: Callable[[], None],
         on_exit: Callable[[], None],
         on_open_settings: Callable[[], None],
+        on_open_logs: Callable[[], None],
+        on_run_self_check: Callable[[], None],
         on_mode_change: Callable[[str], None],
         on_translation_change: Callable[[str], None],
         on_privacy_toggle: Callable[[bool], None],
@@ -26,12 +28,14 @@ class TypeFlowUI:
         self._on_mode_change = on_mode_change
         self._on_translation_change = on_translation_change
         self._on_privacy_toggle = on_privacy_toggle
+        self._on_open_logs = on_open_logs
+        self._on_run_self_check = on_run_self_check
         self._root = tk.Tk()
         self._root.title("TypeFlow")
-        self._root.geometry("520x420")
+        self._root.geometry("520x510")
         self._root.resizable(False, False)
         self._root.protocol("WM_DELETE_WINDOW", on_hide)
-        self._root.minsize(520, 420)
+        self._root.minsize(520, 510)
         self._root.attributes("-topmost", True)
         self._root.attributes("-alpha", 0.98)
         self._icon_image: tk.PhotoImage | None = None
@@ -40,6 +44,8 @@ class TypeFlowUI:
         menu_bar = tk.Menu(self._root)
         file_menu = tk.Menu(menu_bar, tearoff=0)
         file_menu.add_command(label="Settings", command=on_open_settings)
+        file_menu.add_command(label="Open logs", command=on_open_logs)
+        file_menu.add_command(label="Run self-check", command=on_run_self_check)
         file_menu.add_separator()
         file_menu.add_command(label="Send to background", command=on_hide)
         file_menu.add_command(label="Exit", command=on_exit)
@@ -49,6 +55,7 @@ class TypeFlowUI:
 
         self._status = tk.StringVar(value="Ready")
         self._last_text = tk.StringVar(value="No transcription yet")
+        self._diagnostics = tk.StringVar(value="Diagnostics: not run yet")
         self._paste_mode = tk.StringVar(value="Insert mode: Direct typing")
         self._privacy_mode = tk.StringVar(value="Privacy mode: Local only")
         self._translation_mode = tk.StringVar(value="")
@@ -320,6 +327,64 @@ class TypeFlowUI:
             fg=self._muted_text_color,
         ).pack(anchor="w", pady=(12, 0))
 
+        diagnostics_card = tk.Frame(
+            content_area,
+            bg=self._card_color,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground="#d6e2ea",
+            padx=18,
+            pady=16,
+        )
+        diagnostics_card.pack(fill="x", pady=(12, 0))
+        tk.Label(
+            diagnostics_card,
+            text="Diagnostics",
+            font=("Segoe UI", 10, "bold"),
+            bg=self._card_color,
+            fg=self._text_color,
+        ).pack(anchor="w")
+        tk.Label(
+            diagnostics_card,
+            textvariable=self._diagnostics,
+            wraplength=430,
+            justify="left",
+            font=("Segoe UI", 9),
+            bg=self._card_color,
+            fg=self._muted_text_color,
+        ).pack(anchor="w", pady=(8, 12))
+
+        diagnostics_actions = tk.Frame(diagnostics_card, bg=self._card_color)
+        diagnostics_actions.pack(fill="x")
+        tk.Button(
+            diagnostics_actions,
+            text="Run self-check",
+            command=on_run_self_check,
+            font=("Segoe UI", 9),
+            padx=12,
+            pady=5,
+            bg="#eef4fa",
+            fg=self._text_color,
+            activebackground="#dce9f5",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+        ).pack(side="left")
+        tk.Button(
+            diagnostics_actions,
+            text="Open logs",
+            command=on_open_logs,
+            font=("Segoe UI", 9),
+            padx=12,
+            pady=5,
+            bg="#eef4fa",
+            fg=self._text_color,
+            activebackground="#dce9f5",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+        ).pack(side="left", padx=(8, 0))
+
         button_row = tk.Frame(container, bg=self._surface_color)
         button_row.pack(fill="x", side="bottom", pady=(14, 0))
 
@@ -393,6 +458,10 @@ class TypeFlowUI:
 
     def set_transcript(self, text: str) -> None:
         self._last_text.set(text or "No speech detected")
+        self._root.update_idletasks()
+
+    def set_diagnostics(self, text: str) -> None:
+        self._diagnostics.set(text)
         self._root.update_idletasks()
 
     def after(self, delay_ms: int, callback: Callable[[], None]) -> None:

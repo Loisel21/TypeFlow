@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import os
 import threading
 import traceback
+from pathlib import Path
 from queue import Empty, Queue
 
+import sounddevice as sd
+
+from typeflow.assets import asset_path, project_root
 from typeflow.config import AppConfig
 from typeflow.formatter import OutputFormatter
 from typeflow.hotkey import GlobalHotkey
@@ -44,6 +49,8 @@ class TypeFlowApp:
             on_hide=self.hide_to_tray,
             on_exit=self.shutdown,
             on_open_settings=self.open_settings,
+            on_open_logs=self.open_logs,
+            on_run_self_check=self.run_self_check,
             on_mode_change=self.set_output_mode,
             on_translation_change=self.set_translation_mode,
             on_privacy_toggle=self.set_privacy_mode,
@@ -69,6 +76,7 @@ class TypeFlowApp:
         self.ui.set_translation_mode(self.config.translation_mode)
         self.ui.set_hotkey(self.config.hotkey)
         self.ui.set_privacy_mode(self.config.privacy_mode)
+        self.ui.set_diagnostics("Diagnostics: click 'Run self-check' for microphone, assets, and build status.")
         if self.config.start_minimized:
             self.ui.hide()
         self.ui.after(100, self._drain_events)
@@ -113,6 +121,22 @@ class TypeFlowApp:
 
     def open_settings(self) -> None:
         self.ui.open_settings(self.config, self.apply_settings)
+
+    def open_logs(self) -> None:
+        log_file = project_root() / "logs" / "typeflow.log"
+        if log_file.exists():
+            os.startfile(log_file)  # type: ignore[attr-defined]
+            self.ui.set_status("Log file opened")
+            return
+
+        log_dir = project_root() / "logs"
+        log_dir.mkdir(exist_ok=True)
+        os.startfile(log_dir)  # type: ignore[attr-defined]
+        self.ui.set_status("Logs folder opened")
+
+    def run_self_check(self) -> None:
+        self.ui.set_diagnostics("Diagnostics: running self-check...")
+        threading.Thread(target=self._run_self_check_worker, daemon=True).start()
 
     def apply_settings(self, new_config: AppConfig) -> None:
         old_hotkey = self.config.hotkey
@@ -224,6 +248,8 @@ class TypeFlowApp:
                     self.ui.set_status(payload)
                 elif event == "transcript":
                     self.ui.set_transcript(payload)
+                elif event == "diagnostics":
+                    self.ui.set_diagnostics(payload)
         except Empty:
             pass
 
@@ -257,3 +283,59 @@ class TypeFlowApp:
             return
 
         self._schedule_auto_stop_check()
+
+    def _run_self_check_worker(self) -> None:
+        checks: list[str] = []
+
+        try:
+            default_input = sd.default.device[0]
+            devices = sd.query_devices()
+            input_devices = [device for device in devices if int(device.get("max_input_channels", 0)) > 0]
+            if default_input is not None and default_input >= 0:
+                default_name = devices[int(default_input)]["name"]
+                checks.append(f"Microphone OK ({default_name})")
+            elif input_devices:
+                checks.append(f"Microphone available ({input_devices[0]['name']})")
+            else:
+                checks.append("Microphone missing")
+        except Exception as exc:  # noqa: BLE001
+            checks.append(f"Microphone check failed ({exc})")
+
+        try:
+            import faster_whisper
+
+            fw_root = Path(faster_whisper.__file__).resolve().parent
+            vad_files = [
+                fw_root / "assets" / "silero_encoder_v5.onnx",
+                fw_root / "assets" / "silero_decoder_v5.onnx",
+            ]
+            missing_vad = [path.name for path in vad_files if not path.exists()]
+            if missing_vad:
+                checks.append(f"Whisper VAD assets missing ({', '.join(missing_vad)})")
+            else:
+                checks.append("Whisper VAD assets OK")
+        except Exception as exc:  # noqa: BLE001
+            checks.append(f"Whisper asset check failed ({exc})")
+
+        icon_files = ["typeflow-icon.png", "typeflow-tray.png", "typeflow.ico"]
+        missing_icons = [name for name in icon_files if not asset_path(name).exists()]
+        if missing_icons:
+            checks.append(f"Branding assets missing ({', '.join(missing_icons)})")
+        else:
+            checks.append("Branding assets OK")
+
+        if getattr(os, "startfile", None) is None:
+            checks.append("Log opening unavailable")
+        else:
+            checks.append("Log opening available")
+
+        dist_exe = project_root() / "dist" / "TypeFlow.exe"
+        if dist_exe.exists():
+            checks.append("Windows build found")
+        else:
+            checks.append("Windows build missing")
+
+        summary = "Diagnostics: " + " | ".join(checks)
+        self.logger.info("Self-check completed: %s", summary)
+        self._events.put(("diagnostics", summary))
+        self._events.put(("status", "Self-check completed"))
