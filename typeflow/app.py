@@ -43,6 +43,7 @@ class TypeFlowApp:
         self.ui = TypeFlowUI(
             hotkey=self.config.hotkey,
             initial_mode=self.config.output_mode,
+            initial_enhancement_mode=self.config.enhancement_mode,
             initial_translation_mode=self.config.translation_mode,
             initial_privacy_mode=self.config.privacy_mode,
             on_toggle=self.toggle_recording,
@@ -52,6 +53,7 @@ class TypeFlowApp:
             on_open_logs=self.open_logs,
             on_run_self_check=self.run_self_check,
             on_mode_change=self.set_output_mode,
+            on_enhancement_change=self.set_enhancement_mode,
             on_translation_change=self.set_translation_mode,
             on_privacy_toggle=self.set_privacy_mode,
         )
@@ -73,6 +75,7 @@ class TypeFlowApp:
         self.ui.set_status("Ready. Press the hotkey to start dictation.")
         self.ui.set_paste_mode(self.inserter.paste_mode)
         self.ui.set_output_mode(self.config.output_mode)
+        self.ui.set_enhancement_mode(self.config.enhancement_mode)
         self.ui.set_translation_mode(self.config.translation_mode)
         self.ui.set_hotkey(self.config.hotkey)
         self.ui.set_privacy_mode(self.config.privacy_mode)
@@ -150,6 +153,7 @@ class TypeFlowApp:
         self.ui.set_hotkey(self.config.hotkey)
         self.ui.set_privacy_mode(self.config.privacy_mode)
         self.ui.set_translation_mode(self.config.translation_mode)
+        self.ui.set_enhancement_mode(self.config.enhancement_mode)
 
         if self.config.hotkey != old_hotkey:
             self.hotkey.stop()
@@ -158,11 +162,12 @@ class TypeFlowApp:
             self.logger.info("Hotkey updated: %s", self.config.hotkey)
 
         self.logger.info(
-            "Settings saved. hotkey=%s language=%s paste_mode=%s output_mode=%s translation_mode=%s start_minimized=%s privacy_mode=%s remove_fillers=%s auto_stop_enabled=%s silence_timeout=%s max_recording=%s replacements=%s snippets=%s",
+            "Settings saved. hotkey=%s language=%s paste_mode=%s output_mode=%s enhancement_mode=%s translation_mode=%s start_minimized=%s privacy_mode=%s remove_fillers=%s auto_stop_enabled=%s silence_timeout=%s max_recording=%s replacements=%s snippets=%s",
             self.config.hotkey,
             self.config.language,
             self.config.paste_mode,
             self.config.output_mode,
+            self.config.enhancement_mode,
             self.config.translation_mode,
             self.config.start_minimized,
             self.config.privacy_mode,
@@ -181,6 +186,13 @@ class TypeFlowApp:
         self.ui.set_output_mode(output_mode)
         self.logger.info("Output mode updated: %s", output_mode)
         self.ui.set_status(f"Mode active: {output_mode}")
+
+    def set_enhancement_mode(self, enhancement_mode: str) -> None:
+        self.config.enhancement_mode = enhancement_mode
+        self.config.save()
+        self.ui.set_enhancement_mode(enhancement_mode)
+        self.logger.info("Enhancement mode updated: %s", enhancement_mode)
+        self.ui.set_status(f"Enhancement active: {enhancement_mode}")
 
     def set_translation_mode(self, translation_mode: str) -> None:
         self.config.translation_mode = translation_mode
@@ -203,6 +215,7 @@ class TypeFlowApp:
             formatted = self.formatter.format(
                 result.text,
                 self.config.output_mode,
+                enhancement_mode=self.config.enhancement_mode,
                 remove_fillers=self.config.remove_fillers,
                 replacements=self.config.custom_replacements,
                 snippets=self.config.snippets,
@@ -213,7 +226,7 @@ class TypeFlowApp:
             if result.text:
                 insert_result = self.inserter.insert(final_text, target_window=self._target_window)
                 if insert_result.ok:
-                    status = f"Text inserted ({insert_result.method}, {self.config.output_mode}, {self.config.translation_mode})"
+                    status = f"Text inserted ({insert_result.method}, {self.config.output_mode}, {self.config.enhancement_mode}, {self.config.translation_mode})"
                     self._events.put(("status", status))
                     self.logger.info(
                         "Text inserted successfully via %s. mode=%s translation=%s commands=%s",

@@ -13,6 +13,7 @@ class TypeFlowUI:
         self,
         hotkey: str,
         initial_mode: str,
+        initial_enhancement_mode: str,
         initial_translation_mode: str,
         initial_privacy_mode: bool,
         on_toggle: Callable[[], None],
@@ -22,10 +23,12 @@ class TypeFlowUI:
         on_open_logs: Callable[[], None],
         on_run_self_check: Callable[[], None],
         on_mode_change: Callable[[str], None],
+        on_enhancement_change: Callable[[str], None],
         on_translation_change: Callable[[str], None],
         on_privacy_toggle: Callable[[bool], None],
     ) -> None:
         self._on_mode_change = on_mode_change
+        self._on_enhancement_change = on_enhancement_change
         self._on_translation_change = on_translation_change
         self._on_privacy_toggle = on_privacy_toggle
         self._on_open_logs = on_open_logs
@@ -58,6 +61,8 @@ class TypeFlowUI:
         self._diagnostics = tk.StringVar(value="Diagnostics: not run yet")
         self._paste_mode = tk.StringVar(value="Insert mode: Direct typing")
         self._privacy_mode = tk.StringVar(value="Privacy mode: Local only")
+        self._enhancement_mode = tk.StringVar(value="")
+        self._enhancement_mode_key = tk.StringVar(value=initial_enhancement_mode)
         self._translation_mode = tk.StringVar(value="")
         self._translation_mode_key = tk.StringVar(value=initial_translation_mode)
         self._privacy_toggle_var = tk.BooleanVar(value=initial_privacy_mode)
@@ -165,7 +170,7 @@ class TypeFlowUI:
         summary_row = tk.Frame(content_area, bg=self._surface_color)
         summary_row.pack(fill="x", pady=(0, 12))
         self._build_summary_card(summary_row, "Mode", self._mode_var, width=138).pack(side="left", fill="x", expand=True)
-        self._build_summary_card(summary_row, "Insert", self._paste_mode, width=138).pack(side="left", fill="x", expand=True, padx=(
+        self._build_summary_card(summary_row, "Enhancement", self._enhancement_mode, width=138).pack(side="left", fill="x", expand=True, padx=(
             10,
             10,
         ))
@@ -236,6 +241,33 @@ class TypeFlowUI:
             relief="flat",
         )
         self._mode_menu.pack(side="left", padx=(12, 0))
+
+        enhancement_row = tk.Frame(quick_toggle_row, bg=self._card_color)
+        enhancement_row.pack(side="left", padx=(16, 0))
+        tk.Label(
+            enhancement_row,
+            text="Enhancement",
+            font=("Segoe UI", 10, "bold"),
+            bg=self._card_color,
+            fg=self._text_color,
+        ).pack(side="left")
+        self._enhancement_menu = tk.OptionMenu(
+            enhancement_row,
+            self._enhancement_mode_key,
+            "light",
+            "balanced",
+            "strong",
+            command=self._handle_enhancement_change,
+        )
+        self._enhancement_menu.config(
+            width=10,
+            font=("Segoe UI", 9),
+            bg="#eef4fa",
+            activebackground="#dce9f5",
+            highlightthickness=0,
+            relief="flat",
+        )
+        self._enhancement_menu.pack(side="left", padx=(12, 0))
 
         translation_row = tk.Frame(quick_toggle_row, bg=self._card_color)
         translation_row.pack(side="left", padx=(16, 0))
@@ -448,6 +480,7 @@ class TypeFlowUI:
         ).pack(side="right")
 
         self.set_status("Ready")
+        self.set_enhancement_mode(initial_enhancement_mode)
         self.set_translation_mode(initial_translation_mode)
         self.set_privacy_mode(initial_privacy_mode)
 
@@ -474,6 +507,16 @@ class TypeFlowUI:
 
     def set_output_mode(self, output_mode: str) -> None:
         self._mode_var.set(output_mode)
+        self._root.update_idletasks()
+
+    def set_enhancement_mode(self, enhancement_mode: str) -> None:
+        labels = {
+            "light": "Light cleanup",
+            "balanced": "Balanced polish",
+            "strong": "Strong polish",
+        }
+        self._enhancement_mode.set(f"Enhancement: {labels.get(enhancement_mode, 'Balanced polish')}")
+        self._enhancement_mode_key.set(enhancement_mode)
         self._root.update_idletasks()
 
     def set_privacy_mode(self, privacy_mode: bool) -> None:
@@ -537,6 +580,7 @@ class TypeFlowUI:
         hotkey_var = tk.StringVar(value=config.hotkey)
         language_var = tk.StringVar(value=config.language)
         paste_mode_var = tk.StringVar(value=config.paste_mode)
+        enhancement_mode_var = tk.StringVar(value=config.enhancement_mode)
         translation_mode_var = tk.StringVar(value=config.translation_mode)
         start_minimized_var = tk.BooleanVar(value=config.start_minimized)
         privacy_mode_var = tk.BooleanVar(value=config.privacy_mode)
@@ -601,6 +645,7 @@ class TypeFlowUI:
         self._add_labeled_entry(general_tab, "Hotkey", hotkey_var)
         self._add_labeled_menu(general_tab, "Language", language_var, ("de", "en"))
         self._add_labeled_menu(general_tab, "Insert mode", paste_mode_var, ("typing", "clipboard"))
+        self._add_labeled_menu(general_tab, "Enhancement", enhancement_mode_var, ("light", "balanced", "strong"))
 
         general_toggle_row = tk.Frame(general_tab, bg="white")
         general_toggle_row.pack(fill="x", pady=(12, 0))
@@ -689,6 +734,7 @@ class TypeFlowUI:
                 beam_size=config.beam_size,
                 paste_mode=paste_mode_var.get(),
                 output_mode=config.output_mode,
+                enhancement_mode=enhancement_mode_var.get(),
                 translation_mode=translation_mode_var.get(),
                 start_minimized=start_minimized_var.get(),
                 privacy_mode=privacy_mode_var.get(),
@@ -721,6 +767,9 @@ class TypeFlowUI:
 
     def _handle_mode_change(self, value: str) -> None:
         self._on_mode_change(value)
+
+    def _handle_enhancement_change(self, value: str) -> None:
+        self._on_enhancement_change(value)
 
     def _handle_translation_change(self, value: str) -> None:
         self._on_translation_change(value)

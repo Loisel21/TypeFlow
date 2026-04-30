@@ -58,6 +58,7 @@ class OutputFormatter:
         text: str,
         mode: str,
         *,
+        enhancement_mode: str = "balanced",
         remove_fillers: bool = True,
         replacements: dict[str, str] | None = None,
         snippets: dict[str, str] | None = None,
@@ -69,8 +70,13 @@ class OutputFormatter:
         result = normalized
         result = self._apply_phrase_map(result, snippets or {})
         result = self._apply_phrase_map(result, replacements or {})
-        if remove_fillers:
+        if remove_fillers and enhancement_mode in {"balanced", "strong"}:
             result = self._remove_fillers(result)
+        elif remove_fillers and enhancement_mode == "light":
+            result = self._remove_soft_fillers(result)
+
+        if enhancement_mode == "strong":
+            result = self._collapse_repeated_phrases(result)
         replaced, commands = self._apply_voice_commands(result)
 
         if mode == "email":
@@ -147,6 +153,25 @@ class OutputFormatter:
         result = re.sub(r"[ \t]{2,}", " ", result)
         result = re.sub(r"[ \t]+\n", "\n", result)
         result = re.sub(r"\n[ \t]+", "\n", result)
+        return result.strip()
+
+    def _remove_soft_fillers(self, text: str) -> str:
+        light_fillers = ("uh", "um", "erm", "äh", "aeh", "ähm", "aehm")
+        result = text
+        for filler in light_fillers:
+            pattern = re.compile(rf"(?<!\S){re.escape(filler)}(?!\S)", flags=re.IGNORECASE)
+            result = pattern.sub(" ", result)
+        return re.sub(r"[ \t]{2,}", " ", result).strip()
+
+    def _collapse_repeated_phrases(self, text: str) -> str:
+        result = re.sub(r"\b(\w+)(?:[\s,]+\1\b){1,}", r"\1", text, flags=re.IGNORECASE)
+        result = re.sub(
+            r"\b(can you please|could you please|kannst du bitte|koenntest du bitte)\b",
+            lambda match: match.group(1),
+            result,
+            flags=re.IGNORECASE,
+        )
+        result = re.sub(r"[ \t]{2,}", " ", result)
         return result.strip()
 
     def _tighten_punctuation(self, text: str) -> str:
