@@ -25,6 +25,7 @@ class TypeFlowApp:
         self.recorder = AudioRecorder(
             sample_rate=self.config.sample_rate,
             channels=self.config.channels,
+            voice_activity_threshold=self.config.voice_activity_threshold,
         )
         self.transcriber = WhisperTranscriber(
             model_name=self.config.whisper_model,
@@ -53,6 +54,7 @@ class TypeFlowApp:
         self._is_processing = False
         self._is_shutting_down = False
         self._target_window: int | None = None
+        self._auto_stop_after_id: str | None = None
 
     def run(self) -> None:
         self.tray.start()
@@ -83,6 +85,7 @@ class TypeFlowApp:
         self.logger.info("Recording started. target_window=%s", self._target_window)
         self.recorder.start()
         self._events.put(("status", "Recording..."))
+        self._schedule_auto_stop_check()
 
     def shutdown(self) -> None:
         if self._is_shutting_down:
@@ -114,6 +117,7 @@ class TypeFlowApp:
 
         self.inserter.set_paste_mode(self.config.paste_mode)
         self.transcriber.language = self.config.language
+        self.recorder.voice_activity_threshold = self.config.voice_activity_threshold
         self.ui.set_paste_mode(self.config.paste_mode)
         self.ui.set_hotkey(self.config.hotkey)
         self.ui.set_privacy_mode(self.config.privacy_mode)
@@ -126,7 +130,7 @@ class TypeFlowApp:
             self.logger.info("Hotkey updated: %s", self.config.hotkey)
 
         self.logger.info(
-            "Settings saved. hotkey=%s language=%s paste_mode=%s output_mode=%s translation_mode=%s start_minimized=%s privacy_mode=%s remove_fillers=%s replacements=%s snippets=%s",
+            "Settings saved. hotkey=%s language=%s paste_mode=%s output_mode=%s translation_mode=%s start_minimized=%s privacy_mode=%s remove_fillers=%s auto_stop_enabled=%s silence_timeout=%s max_recording=%s replacements=%s snippets=%s",
             self.config.hotkey,
             self.config.language,
             self.config.paste_mode,
@@ -135,6 +139,9 @@ class TypeFlowApp:
             self.config.start_minimized,
             self.config.privacy_mode,
             self.config.remove_fillers,
+            self.config.auto_stop_enabled,
+            self.config.silence_timeout_seconds,
+            self.config.max_recording_seconds,
             len(self.config.custom_replacements),
             len(self.config.snippets),
         )
@@ -186,6 +193,7 @@ class TypeFlowApp:
             self._events.put(("status", message))
             self._events.put(("transcript", str(exc)))
         finally:
+            self._auto_stop_after_id = None
             self._target_window = None
             self._is_processing = False
 
@@ -202,3 +210,31 @@ class TypeFlowApp:
 
         if not self._is_shutting_down:
             self.ui.after(100, self._drain_events)
+
+    def _schedule_auto_stop_check(self) -> None:
+        self.ui.after(250, self._check_auto_stop)
+
+    def _check_auto_stop(self) -> None:
+        if not self.recorder.is_recording or self._is_processing or self._is_shutting_down:
+            return
+
+        if not self.config.auto_stop_enabled:
+            self._schedule_auto_stop_check()
+            return
+
+        recording_elapsed = self.recorder.recording_elapsed()
+        silence_elapsed = self.recorder.silence_elapsed()
+
+        if recording_elapsed >= self.config.max_recording_seconds:
+            self.logger.info("Auto-stop triggered by max recording time: %.2fs", recording_elapsed)
+            self._events.put(("status", "Stopped automatically after maximum recording time."))
+            self.toggle_recording()
+            return
+
+        if self.recorder.has_detected_speech and silence_elapsed >= self.config.silence_timeout_seconds:
+            self.logger.info("Auto-stop triggered by silence timeout: %.2fs", silence_elapsed)
+            self._events.put(("status", "Stopped automatically after silence."))
+            self.toggle_recording()
+            return
+
+        self._schedule_auto_stop_check()

@@ -193,6 +193,9 @@ class TypeFlowUI:
         start_minimized_var = tk.BooleanVar(value=config.start_minimized)
         privacy_mode_var = tk.BooleanVar(value=config.privacy_mode)
         remove_fillers_var = tk.BooleanVar(value=config.remove_fillers)
+        auto_stop_enabled_var = tk.BooleanVar(value=config.auto_stop_enabled)
+        silence_timeout_var = tk.StringVar(value=str(config.silence_timeout_seconds))
+        max_recording_var = tk.StringVar(value=str(config.max_recording_seconds))
 
         content = tk.Frame(window, padx=18, pady=18)
         content.pack(fill="both", expand=True)
@@ -222,6 +225,15 @@ class TypeFlowUI:
             variable=remove_fillers_var,
             font=("Segoe UI", 9),
         ).pack(anchor="w")
+        tk.Checkbutton(
+            toggle_row,
+            text="Stop recording automatically after silence",
+            variable=auto_stop_enabled_var,
+            font=("Segoe UI", 9),
+        ).pack(anchor="w")
+
+        self._add_labeled_entry(content, "Silence timeout (s)", silence_timeout_var)
+        self._add_labeled_entry(content, "Max recording (s)", max_recording_var)
 
         replacements_var = tk.Text(content, height=8, width=70, font=("Consolas", 9))
         replacements_var.insert("1.0", self._format_mapping(config.custom_replacements))
@@ -269,6 +281,10 @@ class TypeFlowUI:
                 start_minimized=start_minimized_var.get(),
                 privacy_mode=privacy_mode_var.get(),
                 remove_fillers=remove_fillers_var.get(),
+                auto_stop_enabled=auto_stop_enabled_var.get(),
+                silence_timeout_seconds=self._parse_float(silence_timeout_var.get(), config.silence_timeout_seconds),
+                max_recording_seconds=self._parse_float(max_recording_var.get(), config.max_recording_seconds),
+                voice_activity_threshold=config.voice_activity_threshold,
                 custom_replacements=self._parse_mapping(replacements_var.get("1.0", "end")),
                 snippets=self._parse_mapping(snippets_var.get("1.0", "end")),
             )
@@ -343,3 +359,10 @@ class TypeFlowUI:
             f"{spoken} => {written.replace(chr(10), '\\n').replace(chr(9), '\\t')}"
             for spoken, written in mapping.items()
         )
+
+    def _parse_float(self, raw_value: str, fallback: float) -> float:
+        try:
+            value = float(raw_value.strip())
+            return value if value > 0 else fallback
+        except ValueError:
+            return fallback

@@ -24,6 +24,10 @@ class AppConfig:
     start_minimized: bool = False
     privacy_mode: bool = True
     remove_fillers: bool = True
+    auto_stop_enabled: bool = True
+    silence_timeout_seconds: float = 1.8
+    max_recording_seconds: float = 20.0
+    voice_activity_threshold: float = 0.015
     custom_replacements: dict[str, str] = field(default_factory=lambda: {"type flow": "TypeFlow"})
     snippets: dict[str, str] = field(default_factory=dict)
 

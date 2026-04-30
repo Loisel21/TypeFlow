@@ -26,6 +26,7 @@ TypeFlow lets you:
 - trigger reusable snippets by voice
 - clean up filler words automatically
 - optionally translate German -> English or English -> German before insertion
+- stop dictation automatically after a short period of silence
 
 ## Current Features
 
@@ -37,6 +38,7 @@ TypeFlow lets you:
 - log file for debugging focus and insertion
 - privacy mode toggle for local-first workflow
 - automatic filler-word cleanup
+- automatic stop after silence
 - personal lexicon replacements
 - voice-triggered snippets
 - configurable translation mode:
@@ -134,6 +136,21 @@ Note:
 - the current translation feature uses an online translation service
 - local dictation still works without translation
 - if you want strict local-only behavior, keep translation set to `off`
+
+## Automatic Stop
+
+TypeFlow can stop recording automatically so you do not always need to press the hotkey a second time.
+
+Settings available:
+
+- `Stop recording automatically after silence`
+- `Silence timeout (s)`
+- `Max recording (s)`
+
+Behavior:
+
+- if speech is detected and then you stay quiet for the configured silence timeout, recording stops automatically
+- if recording runs too long, it also stops at the configured maximum duration
 
 ## Personalization
 
