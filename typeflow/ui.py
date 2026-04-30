@@ -180,8 +180,16 @@ class TypeFlowUI:
 
         window = tk.Toplevel(self._root)
         window.title("TypeFlow Settings")
-        window.geometry("660x680")
-        window.resizable(False, False)
+        self._root.update_idletasks()
+        screen_width = self._root.winfo_screenwidth()
+        screen_height = self._root.winfo_screenheight()
+        width = min(720, max(620, screen_width - 120))
+        height = min(760, max(520, screen_height - 120))
+        x = max(40, (screen_width - width) // 2)
+        y = max(40, (screen_height - height) // 2)
+        window.geometry(f"{width}x{height}+{x}+{y}")
+        window.minsize(620, 520)
+        window.resizable(True, True)
         window.transient(self._root)
         window.grab_set()
         self._settings_window = window
@@ -197,8 +205,36 @@ class TypeFlowUI:
         silence_timeout_var = tk.StringVar(value=str(config.silence_timeout_seconds))
         max_recording_var = tk.StringVar(value=str(config.max_recording_seconds))
 
-        content = tk.Frame(window, padx=18, pady=18)
-        content.pack(fill="both", expand=True)
+        outer = tk.Frame(window)
+        outer.pack(fill="both", expand=True)
+
+        canvas = tk.Canvas(outer, highlightthickness=0)
+        scrollbar = tk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+
+        content = tk.Frame(canvas, padx=18, pady=18)
+        content_window = canvas.create_window((0, 0), window=content, anchor="nw")
+
+        def sync_scroll_region(event) -> None:  # noqa: ANN001
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def sync_content_width(event) -> None:  # noqa: ANN001
+            canvas.itemconfigure(content_window, width=event.width)
+
+        content.bind("<Configure>", sync_scroll_region)
+        canvas.bind("<Configure>", sync_content_width)
+        canvas.bind_all(
+            "<MouseWheel>",
+            lambda event: canvas.yview_scroll(int(-1 * (event.delta / 120)), "units"),
+        )
+
+        def close_settings() -> None:
+            canvas.unbind_all("<MouseWheel>")
+            window.destroy()
+
+        window.protocol("WM_DELETE_WINDOW", close_settings)
 
         self._add_labeled_entry(content, "Hotkey", hotkey_var)
         self._add_labeled_menu(content, "Language", language_var, ("de", "en"))
@@ -257,7 +293,7 @@ class TypeFlowUI:
             "This makes TypeFlow feel closer to Voicely: personal replacements, snippets, "
             "local privacy mode, and automatic cleanup can all be tuned here."
         )
-        tk.Label(content, text=info, wraplength=360, justify="left", font=("Segoe UI", 9)).pack(
+        tk.Label(content, text=info, wraplength=max(420, width - 220), justify="left", font=("Segoe UI", 9)).pack(
             anchor="w",
             pady=(18, 18),
         )
@@ -289,9 +325,9 @@ class TypeFlowUI:
                 snippets=self._parse_mapping(snippets_var.get("1.0", "end")),
             )
             on_save(updated_config)
-            window.destroy()
+            close_settings()
 
-        tk.Button(button_row, text="Cancel", command=window.destroy, font=("Segoe UI", 9), padx=12, pady=5).pack(
+        tk.Button(button_row, text="Cancel", command=close_settings, font=("Segoe UI", 9), padx=12, pady=5).pack(
             side="left"
         )
         tk.Button(button_row, text="Save", command=save_settings, font=("Segoe UI", 9), padx=12, pady=5).pack(
