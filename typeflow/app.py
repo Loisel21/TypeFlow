@@ -38,11 +38,15 @@ class TypeFlowApp:
         self.ui = TypeFlowUI(
             hotkey=self.config.hotkey,
             initial_mode=self.config.output_mode,
+            initial_translation_mode=self.config.translation_mode,
+            initial_privacy_mode=self.config.privacy_mode,
             on_toggle=self.toggle_recording,
             on_hide=self.hide_to_tray,
             on_exit=self.shutdown,
             on_open_settings=self.open_settings,
             on_mode_change=self.set_output_mode,
+            on_translation_change=self.set_translation_mode,
+            on_privacy_toggle=self.set_privacy_mode,
         )
         self.tray = TypeFlowTray(
             on_show=self.show_window,
@@ -153,6 +157,21 @@ class TypeFlowApp:
         self.ui.set_output_mode(output_mode)
         self.logger.info("Output mode updated: %s", output_mode)
         self.ui.set_status(f"Mode active: {output_mode}")
+
+    def set_translation_mode(self, translation_mode: str) -> None:
+        self.config.translation_mode = translation_mode
+        self.config.save()
+        self.ui.set_translation_mode(translation_mode)
+        self.logger.info("Translation mode updated: %s", translation_mode)
+        self.ui.set_status(f"Translation active: {translation_mode}")
+
+    def set_privacy_mode(self, privacy_mode: bool) -> None:
+        self.config.privacy_mode = privacy_mode
+        self.config.save()
+        self.ui.set_privacy_mode(privacy_mode)
+        self.logger.info("Privacy mode updated: %s", privacy_mode)
+        mode_label = "local only" if privacy_mode else "cloud-ready workflow"
+        self.ui.set_status(f"Privacy mode active: {mode_label}")
 
     def _process_audio(self, audio) -> None:  # noqa: ANN001
         try:

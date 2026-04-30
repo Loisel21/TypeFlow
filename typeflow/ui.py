@@ -12,19 +12,27 @@ class TypeFlowUI:
         self,
         hotkey: str,
         initial_mode: str,
+        initial_translation_mode: str,
+        initial_privacy_mode: bool,
         on_toggle: Callable[[], None],
         on_hide: Callable[[], None],
         on_exit: Callable[[], None],
         on_open_settings: Callable[[], None],
         on_mode_change: Callable[[str], None],
+        on_translation_change: Callable[[str], None],
+        on_privacy_toggle: Callable[[bool], None],
     ) -> None:
         self._on_mode_change = on_mode_change
+        self._on_translation_change = on_translation_change
+        self._on_privacy_toggle = on_privacy_toggle
         self._root = tk.Tk()
         self._root.title("TypeFlow")
-        self._root.geometry("620x420")
+        self._root.geometry("560x500")
         self._root.resizable(False, False)
         self._root.protocol("WM_DELETE_WINDOW", on_hide)
-        self._root.minsize(620, 420)
+        self._root.minsize(560, 500)
+        self._root.attributes("-topmost", True)
+        self._root.attributes("-alpha", 0.98)
 
         menu_bar = tk.Menu(self._root)
         file_menu = tk.Menu(menu_bar, tearoff=0)
@@ -40,11 +48,15 @@ class TypeFlowUI:
         self._last_text = tk.StringVar(value="No transcription yet")
         self._paste_mode = tk.StringVar(value="Insert mode: Direct typing")
         self._privacy_mode = tk.StringVar(value="Privacy mode: Local only")
-        self._translation_mode = tk.StringVar(value="Translation: Off")
+        self._translation_mode = tk.StringVar(value="")
+        self._translation_mode_key = tk.StringVar(value=initial_translation_mode)
+        self._privacy_toggle_var = tk.BooleanVar(value=initial_privacy_mode)
         self._mode_var = tk.StringVar(value=initial_mode)
         self._hotkey_var = tk.StringVar(value=f"Global hotkey: {hotkey}")
         self._status_badge = tk.StringVar(value="Ready")
         self._settings_window: tk.Toplevel | None = None
+        self._pulse_after_id: str | None = None
+        self._pulse_step = 0
 
         self._surface_color = "#f4f7fb"
         self._card_color = "#ffffff"
@@ -100,6 +112,13 @@ class TypeFlowUI:
             bg=self._surface_color,
             fg=self._muted_text_color,
         ).pack(anchor="w", pady=(4, 0))
+        tk.Label(
+            title_copy,
+            text="Floating voice HUD for fast dictation across Windows.",
+            font=("Segoe UI", 8),
+            bg=self._surface_color,
+            fg="#7a8ea3",
+        ).pack(anchor="w", pady=(6, 0))
 
         status_cluster = tk.Frame(title_row, bg=self._surface_color)
         status_cluster.pack(side="right", anchor="n", pady=(6, 0))
@@ -124,12 +143,12 @@ class TypeFlowUI:
 
         summary_row = tk.Frame(content_area, bg=self._surface_color)
         summary_row.pack(fill="x", pady=(0, 14))
-        self._build_summary_card(summary_row, "Mode", self._mode_var, width=172).pack(side="left", fill="x", expand=True)
-        self._build_summary_card(summary_row, "Insert", self._paste_mode, width=172).pack(side="left", fill="x", expand=True, padx=(
+        self._build_summary_card(summary_row, "Mode", self._mode_var, width=152).pack(side="left", fill="x", expand=True)
+        self._build_summary_card(summary_row, "Insert", self._paste_mode, width=152).pack(side="left", fill="x", expand=True, padx=(
             10,
             10,
         ))
-        self._build_summary_card(summary_row, "Translation", self._translation_mode, width=172).pack(side="left", fill="x", expand=True)
+        self._build_summary_card(summary_row, "Translation", self._translation_mode, width=152).pack(side="left", fill="x", expand=True)
 
         workspace_card = tk.Frame(
             content_area,
@@ -165,17 +184,20 @@ class TypeFlowUI:
         tk.Label(
             workspace_card,
             text="Keep TypeFlow in the background, stay in your target field, press the hotkey, and let the text flow in automatically.",
-            wraplength=530,
+            wraplength=470,
             justify="left",
             font=("Segoe UI", 9),
             bg=self._card_color,
             fg=self._muted_text_color,
         ).pack(anchor="w", pady=(10, 14))
 
-        mode_row = tk.Frame(workspace_card, bg=self._card_color)
-        mode_row.pack(fill="x")
+        quick_toggle_row = tk.Frame(workspace_card, bg=self._card_color)
+        quick_toggle_row.pack(fill="x")
+
+        mode_row = tk.Frame(quick_toggle_row, bg=self._card_color)
+        mode_row.pack(side="left")
         tk.Label(mode_row, text="Mode", font=("Segoe UI", 10, "bold"), bg=self._card_color, fg=self._text_color).pack(side="left")
-        mode_menu = tk.OptionMenu(
+        self._mode_menu = tk.OptionMenu(
             mode_row,
             self._mode_var,
             "normal",
@@ -184,7 +206,7 @@ class TypeFlowUI:
             "code",
             command=self._handle_mode_change,
         )
-        mode_menu.config(
+        self._mode_menu.config(
             width=12,
             font=("Segoe UI", 9),
             bg="#eef4fa",
@@ -192,7 +214,49 @@ class TypeFlowUI:
             highlightthickness=0,
             relief="flat",
         )
-        mode_menu.pack(side="left", padx=(12, 0))
+        self._mode_menu.pack(side="left", padx=(12, 0))
+
+        translation_row = tk.Frame(quick_toggle_row, bg=self._card_color)
+        translation_row.pack(side="left", padx=(16, 0))
+        tk.Label(
+            translation_row,
+            text="Translation",
+            font=("Segoe UI", 10, "bold"),
+            bg=self._card_color,
+            fg=self._text_color,
+        ).pack(side="left")
+        self._translation_menu = tk.OptionMenu(
+            translation_row,
+            self._translation_mode_key,
+            "off",
+            "de_to_en",
+            "en_to_de",
+            command=self._handle_translation_change,
+        )
+        self._translation_menu.config(
+            width=12,
+            font=("Segoe UI", 9),
+            bg="#eef4fa",
+            activebackground="#dce9f5",
+            highlightthickness=0,
+            relief="flat",
+        )
+        self._translation_menu.pack(side="left", padx=(12, 0))
+
+        privacy_toggle = tk.Checkbutton(
+            quick_toggle_row,
+            text="Privacy mode",
+            variable=self._privacy_toggle_var,
+            command=self._handle_privacy_toggle,
+            font=("Segoe UI", 9, "bold"),
+            bg=self._card_color,
+            fg=self._text_color,
+            activebackground=self._card_color,
+            selectcolor="#e8f6f8",
+            padx=8,
+            pady=4,
+        )
+        privacy_toggle.pack(side="right")
 
         status_card = tk.Frame(
             content_area,
@@ -219,7 +283,7 @@ class TypeFlowUI:
         tk.Label(
             status_card,
             textvariable=self._last_text,
-            wraplength=510,
+            wraplength=470,
             justify="left",
             font=("Segoe UI", 10),
             bg=self._card_color,
@@ -241,7 +305,7 @@ class TypeFlowUI:
         tk.Label(
             status_card,
             text="Supports punctuation commands in German and English, translation modes, snippets, and a local-first privacy workflow.",
-            wraplength=510,
+            wraplength=470,
             justify="left",
             font=("Segoe UI", 9),
             bg=self._card_color,
@@ -311,6 +375,8 @@ class TypeFlowUI:
         ).pack(side="right")
 
         self.set_status("Ready")
+        self.set_translation_mode(initial_translation_mode)
+        self.set_privacy_mode(initial_privacy_mode)
 
     def set_status(self, text: str) -> None:
         self._status.set(text)
@@ -336,6 +402,7 @@ class TypeFlowUI:
     def set_privacy_mode(self, privacy_mode: bool) -> None:
         label = "Local only" if privacy_mode else "Cloud-ready workflow"
         self._privacy_mode.set(f"Privacy mode: {label}")
+        self._privacy_toggle_var.set(privacy_mode)
         self._root.update_idletasks()
 
     def set_translation_mode(self, translation_mode: str) -> None:
@@ -345,6 +412,7 @@ class TypeFlowUI:
             "en_to_de": "English -> German",
         }
         self._translation_mode.set(f"Translation: {labels.get(translation_mode, 'Off')}")
+        self._translation_mode_key.set(translation_mode)
         self._root.update_idletasks()
 
     def set_hotkey(self, hotkey: str) -> None:
@@ -575,6 +643,12 @@ class TypeFlowUI:
     def _handle_mode_change(self, value: str) -> None:
         self._on_mode_change(value)
 
+    def _handle_translation_change(self, value: str) -> None:
+        self._on_translation_change(value)
+
+    def _handle_privacy_toggle(self) -> None:
+        self._on_privacy_toggle(self._privacy_toggle_var.get())
+
     def _build_summary_card(self, parent: tk.Widget, title: str, variable: tk.StringVar, width: int) -> tk.Frame:
         card = tk.Frame(parent, bg=self._card_color, bd=0, highlightthickness=1, highlightbackground="#dbe3ec", padx=14, pady=12)
         card.configure(width=width)
@@ -600,6 +674,8 @@ class TypeFlowUI:
         badge_bg = self._accent_soft
         status_fg = self._success_color
         button_text = "Start dictation"
+        is_recording = False
+        is_processing = False
 
         if "recording" in lowered:
             badge_text = "Recording"
@@ -607,12 +683,14 @@ class TypeFlowUI:
             badge_bg = self._warning_soft
             status_fg = self._warning_color
             button_text = "Stop dictation"
+            is_recording = True
         elif "transcrib" in lowered or "processing" in lowered:
             badge_text = "Processing"
             badge_fg = self._accent_color
             badge_bg = self._accent_soft
             status_fg = self._accent_color
             button_text = "Processing..."
+            is_processing = True
         elif "error" in lowered or "failed" in lowered:
             badge_text = "Needs attention"
             badge_fg = self._error_color
@@ -628,6 +706,31 @@ class TypeFlowUI:
         self._status_badge_label.configure(bg=badge_bg, fg=badge_fg)
         self._status_label.configure(fg=status_fg)
         self._toggle_button.configure(text=button_text, state="disabled" if button_text == "Processing..." else "normal")
+        self._set_recording_pulse(is_recording)
+
+    def _set_recording_pulse(self, enabled: bool) -> None:
+        if enabled:
+            if self._pulse_after_id is None:
+                self._pulse_step = 0
+                self._run_recording_pulse()
+            return
+
+        if self._pulse_after_id is not None:
+            self._root.after_cancel(self._pulse_after_id)
+            self._pulse_after_id = None
+        self._toggle_button.configure(bg=self._accent_color, activebackground="#095c6c")
+
+    def _run_recording_pulse(self) -> None:
+        palette = (
+            (self._warning_soft, self._warning_color, "#d98804"),
+            ("#ffe8a3", self._warning_color, "#b36d00"),
+            ("#ffd37a", self._warning_color, "#9a6700"),
+        )
+        badge_bg, badge_fg, button_bg = palette[self._pulse_step % len(palette)]
+        self._status_badge_label.configure(bg=badge_bg, fg=badge_fg)
+        self._toggle_button.configure(bg=button_bg, activebackground=button_bg)
+        self._pulse_step += 1
+        self._pulse_after_id = self._root.after(220, self._run_recording_pulse)
 
     def _add_labeled_entry(self, parent: tk.Widget, label: str, variable: tk.StringVar) -> None:
         row = tk.Frame(parent, bg=parent.cget("bg"))
