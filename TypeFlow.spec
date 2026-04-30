@@ -3,16 +3,19 @@
 
 from pathlib import Path
 
+from PyInstaller.utils.hooks import collect_data_files
+
 
 ROOT = Path.cwd()
 ASSETS = ROOT / "assets"
+FASTER_WHISPER_DATAS = collect_data_files("faster_whisper")
 
 
 a = Analysis(
     ["main.py"],
     pathex=[],
     binaries=[],
-    datas=[(str(ASSETS), "assets")],
+    datas=[(str(ASSETS), "assets"), *FASTER_WHISPER_DATAS],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

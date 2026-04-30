@@ -34,12 +34,22 @@ class WhisperTranscriber:
             return TranscriptResult(text="", language=self.language)
 
         model = self._get_model()
-        segments, info = model.transcribe(
-            audio,
-            language=self.language,
-            beam_size=self.beam_size,
-            vad_filter=True,
-        )
+        try:
+            segments, info = model.transcribe(
+                audio,
+                language=self.language,
+                beam_size=self.beam_size,
+                vad_filter=True,
+            )
+        except RuntimeError as exc:
+            if not self._should_retry_without_vad(exc):
+                raise
+            segments, info = model.transcribe(
+                audio,
+                language=self.language,
+                beam_size=self.beam_size,
+                vad_filter=False,
+            )
         text = " ".join(segment.text.strip() for segment in segments).strip()
         return TranscriptResult(text=self._clean_text(text), language=info.language or self.language)
 
@@ -55,3 +65,7 @@ class WhisperTranscriber:
                 compute_type=self.compute_type,
             )
         return self._model
+
+    def _should_retry_without_vad(self, exc: RuntimeError) -> bool:
+        message = str(exc).lower()
+        return "silero" in message or "faster_whisper\\assets" in message or "faster_whisper/assets" in message

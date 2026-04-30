@@ -3,9 +3,11 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from typeflow.assets import project_root
+
 
 def setup_logger() -> logging.Logger:
-    log_dir = Path(__file__).resolve().parents[1] / "logs"
+    log_dir = project_root() / "logs"
     log_dir.mkdir(exist_ok=True)
     log_file = log_dir / "typeflow.log"
 
