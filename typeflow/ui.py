@@ -28,6 +28,7 @@ class TypeFlowUI:
         self._last_text = tk.StringVar(value="No transcription yet")
         self._paste_mode = tk.StringVar(value="Insert mode: Direct typing")
         self._privacy_mode = tk.StringVar(value="Privacy mode: Local only")
+        self._translation_mode = tk.StringVar(value="Translation: Off")
         self._mode_var = tk.StringVar(value=initial_mode)
         self._hotkey_var = tk.StringVar(value=f"Global hotkey: {hotkey}")
         self._settings_window: tk.Toplevel | None = None
@@ -74,6 +75,7 @@ class TypeFlowUI:
         ).pack(anchor="w", pady=(10, 14))
         tk.Label(container, textvariable=self._paste_mode, font=("Segoe UI", 9)).pack(anchor="w", pady=(0, 6))
         tk.Label(container, textvariable=self._privacy_mode, font=("Segoe UI", 9)).pack(anchor="w", pady=(0, 6))
+        tk.Label(container, textvariable=self._translation_mode, font=("Segoe UI", 9)).pack(anchor="w", pady=(0, 6))
         tk.Label(
             container,
             text="Spoken commands supported right now: Punkt, Komma, Fragezeichen, Ausrufezeichen, Doppelpunkt, Semikolon, neue Zeile, neuer Absatz, Tab, plus English equivalents.",
@@ -143,6 +145,15 @@ class TypeFlowUI:
         self._privacy_mode.set(f"Privacy mode: {label}")
         self._root.update_idletasks()
 
+    def set_translation_mode(self, translation_mode: str) -> None:
+        labels = {
+            "off": "Off",
+            "de_to_en": "German -> English",
+            "en_to_de": "English -> German",
+        }
+        self._translation_mode.set(f"Translation: {labels.get(translation_mode, 'Off')}")
+        self._root.update_idletasks()
+
     def set_hotkey(self, hotkey: str) -> None:
         self._hotkey_var.set(f"Global hotkey: {hotkey}")
         self._root.update_idletasks()
@@ -178,6 +189,7 @@ class TypeFlowUI:
         hotkey_var = tk.StringVar(value=config.hotkey)
         language_var = tk.StringVar(value=config.language)
         paste_mode_var = tk.StringVar(value=config.paste_mode)
+        translation_mode_var = tk.StringVar(value=config.translation_mode)
         start_minimized_var = tk.BooleanVar(value=config.start_minimized)
         privacy_mode_var = tk.BooleanVar(value=config.privacy_mode)
         remove_fillers_var = tk.BooleanVar(value=config.remove_fillers)
@@ -188,6 +200,7 @@ class TypeFlowUI:
         self._add_labeled_entry(content, "Hotkey", hotkey_var)
         self._add_labeled_menu(content, "Language", language_var, ("de", "en"))
         self._add_labeled_menu(content, "Insert mode", paste_mode_var, ("typing", "clipboard"))
+        self._add_labeled_menu(content, "Translation", translation_mode_var, ("off", "de_to_en", "en_to_de"))
 
         toggle_row = tk.Frame(content)
         toggle_row.pack(fill="x", pady=(12, 0))
@@ -252,6 +265,7 @@ class TypeFlowUI:
                 beam_size=config.beam_size,
                 paste_mode=paste_mode_var.get(),
                 output_mode=config.output_mode,
+                translation_mode=translation_mode_var.get(),
                 start_minimized=start_minimized_var.get(),
                 privacy_mode=privacy_mode_var.get(),
                 remove_fillers=remove_fillers_var.get(),

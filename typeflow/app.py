@@ -12,6 +12,7 @@ from typeflow.logger import setup_logger
 from typeflow.recorder import AudioRecorder
 from typeflow.tray import TypeFlowTray
 from typeflow.transcriber import WhisperTranscriber
+from typeflow.translator import TextTranslator
 from typeflow.ui import TypeFlowUI
 
 
@@ -20,6 +21,7 @@ class TypeFlowApp:
         self.config = AppConfig.load()
         self.logger = setup_logger()
         self.formatter = OutputFormatter()
+        self.translator = TextTranslator()
         self.recorder = AudioRecorder(
             sample_rate=self.config.sample_rate,
             channels=self.config.channels,
@@ -58,6 +60,7 @@ class TypeFlowApp:
         self.ui.set_status("Ready. Press the hotkey to start dictation.")
         self.ui.set_paste_mode(self.inserter.paste_mode)
         self.ui.set_output_mode(self.config.output_mode)
+        self.ui.set_translation_mode(self.config.translation_mode)
         self.ui.set_hotkey(self.config.hotkey)
         self.ui.set_privacy_mode(self.config.privacy_mode)
         if self.config.start_minimized:
@@ -114,6 +117,7 @@ class TypeFlowApp:
         self.ui.set_paste_mode(self.config.paste_mode)
         self.ui.set_hotkey(self.config.hotkey)
         self.ui.set_privacy_mode(self.config.privacy_mode)
+        self.ui.set_translation_mode(self.config.translation_mode)
 
         if self.config.hotkey != old_hotkey:
             self.hotkey.stop()
@@ -122,11 +126,12 @@ class TypeFlowApp:
             self.logger.info("Hotkey updated: %s", self.config.hotkey)
 
         self.logger.info(
-            "Settings saved. hotkey=%s language=%s paste_mode=%s output_mode=%s start_minimized=%s privacy_mode=%s remove_fillers=%s replacements=%s snippets=%s",
+            "Settings saved. hotkey=%s language=%s paste_mode=%s output_mode=%s translation_mode=%s start_minimized=%s privacy_mode=%s remove_fillers=%s replacements=%s snippets=%s",
             self.config.hotkey,
             self.config.language,
             self.config.paste_mode,
             self.config.output_mode,
+            self.config.translation_mode,
             self.config.start_minimized,
             self.config.privacy_mode,
             self.config.remove_fillers,
@@ -152,16 +157,19 @@ class TypeFlowApp:
                 replacements=self.config.custom_replacements,
                 snippets=self.config.snippets,
             )
-            self._events.put(("transcript", formatted.text or "No speech detected"))
+            translated = self.translator.translate(formatted.text, self.config.translation_mode)
+            final_text = translated.text
+            self._events.put(("transcript", final_text or "No speech detected"))
             if result.text:
-                insert_result = self.inserter.insert(formatted.text, target_window=self._target_window)
+                insert_result = self.inserter.insert(final_text, target_window=self._target_window)
                 if insert_result.ok:
-                    status = f"Text inserted ({insert_result.method}, {self.config.output_mode})"
+                    status = f"Text inserted ({insert_result.method}, {self.config.output_mode}, {self.config.translation_mode})"
                     self._events.put(("status", status))
                     self.logger.info(
-                        "Text inserted successfully via %s. mode=%s commands=%s",
+                        "Text inserted successfully via %s. mode=%s translation=%s commands=%s",
                         insert_result.method,
                         self.config.output_mode,
+                        self.config.translation_mode,
                         ",".join(formatted.applied_commands) or "-",
                     )
                 else:

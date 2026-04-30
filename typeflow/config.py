@@ -20,6 +20,7 @@ class AppConfig:
     beam_size: int = 5
     paste_mode: str = "typing"
     output_mode: str = "normal"
+    translation_mode: str = "off"
     start_minimized: bool = False
     privacy_mode: bool = True
     remove_fillers: bool = True

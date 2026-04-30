@@ -25,6 +25,7 @@ TypeFlow lets you:
 - maintain a personal lexicon for names, brands, and domain terms
 - trigger reusable snippets by voice
 - clean up filler words automatically
+- optionally translate German -> English or English -> German before insertion
 
 ## Current Features
 
@@ -38,6 +39,10 @@ TypeFlow lets you:
 - automatic filler-word cleanup
 - personal lexicon replacements
 - voice-triggered snippets
+- configurable translation mode:
+  - `off`
+  - `de_to_en`
+  - `en_to_de`
 - output modes:
   - `normal`
   - `email`
@@ -106,6 +111,29 @@ Or on Windows:
 - `email`: cleaner, more formal output
 - `chat`: lighter conversational formatting
 - `code`: direct output with support for line breaks and tabs
+
+## Translation
+
+You can now choose a translation mode in Settings:
+
+- `off`
+- `de_to_en`
+- `en_to_de`
+
+The translation step runs after formatting and before insertion.
+
+Example flow:
+
+1. Dictate in German
+2. TypeFlow transcribes and cleans up the text
+3. TypeFlow translates it to English
+4. The translated result is inserted into the active app
+
+Note:
+
+- the current translation feature uses an online translation service
+- local dictation still works without translation
+- if you want strict local-only behavior, keep translation set to `off`
 
 ## Personalization
 
