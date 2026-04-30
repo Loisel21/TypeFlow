@@ -43,42 +43,138 @@ class TypeFlowUI:
         self._translation_mode = tk.StringVar(value="Translation: Off")
         self._mode_var = tk.StringVar(value=initial_mode)
         self._hotkey_var = tk.StringVar(value=f"Global hotkey: {hotkey}")
+        self._status_badge = tk.StringVar(value="Ready")
         self._settings_window: tk.Toplevel | None = None
 
-        container = tk.Frame(self._root, padx=22, pady=20, bg="#f4f7fb")
-        container.pack(fill="both", expand=True)
-        self._root.configure(bg="#f4f7fb")
+        self._surface_color = "#f4f7fb"
+        self._card_color = "#ffffff"
+        self._text_color = "#16324f"
+        self._muted_text_color = "#5e7488"
+        self._accent_color = "#0b7285"
+        self._accent_soft = "#d9f0f3"
+        self._success_color = "#0f766e"
+        self._success_soft = "#d7f5ec"
+        self._warning_color = "#9a6700"
+        self._warning_soft = "#fff3c4"
+        self._error_color = "#b42318"
+        self._error_soft = "#fee4e2"
 
-        content_area = tk.Frame(container, bg="#f4f7fb")
+        style = ttk.Style(self._root)
+        style.theme_use("clam")
+        style.configure("TypeFlow.TNotebook", background=self._surface_color, borderwidth=0)
+        style.configure(
+            "TypeFlow.TNotebook.Tab",
+            padding=(16, 8),
+            font=("Segoe UI", 9, "bold"),
+            background="#e8eef5",
+            foreground=self._text_color,
+        )
+        style.map(
+            "TypeFlow.TNotebook.Tab",
+            background=[("selected", self._card_color)],
+            foreground=[("selected", self._accent_color)],
+        )
+
+        container = tk.Frame(self._root, padx=20, pady=18, bg=self._surface_color)
+        container.pack(fill="both", expand=True)
+        self._root.configure(bg=self._surface_color)
+
+        content_area = tk.Frame(container, bg=self._surface_color)
         content_area.pack(fill="both", expand=True)
 
-        hero = tk.Frame(content_area, bg="#f4f7fb")
+        hero = tk.Frame(content_area, bg=self._surface_color)
         hero.pack(fill="x")
 
-        tk.Label(hero, text="TypeFlow", font=("Segoe UI", 24, "bold"), bg="#f4f7fb", fg="#16324f").pack(anchor="w")
+        title_row = tk.Frame(hero, bg=self._surface_color)
+        title_row.pack(fill="x")
+
+        title_copy = tk.Frame(title_row, bg=self._surface_color)
+        title_copy.pack(side="left", anchor="n")
+        tk.Label(title_copy, text="TypeFlow", font=("Segoe UI", 24, "bold"), bg=self._surface_color, fg=self._text_color).pack(
+            anchor="w"
+        )
+        tk.Label(
+            title_copy,
+            text="Speak naturally. Your text appears polished in any app.",
+            font=("Segoe UI", 10),
+            bg=self._surface_color,
+            fg=self._muted_text_color,
+        ).pack(anchor="w", pady=(4, 0))
+
+        status_cluster = tk.Frame(title_row, bg=self._surface_color)
+        status_cluster.pack(side="right", anchor="n", pady=(6, 0))
+        self._status_badge_label = tk.Label(
+            status_cluster,
+            textvariable=self._status_badge,
+            font=("Segoe UI", 9, "bold"),
+            padx=12,
+            pady=6,
+            bg=self._accent_soft,
+            fg=self._accent_color,
+        )
+        self._status_badge_label.pack(anchor="e")
+
         tk.Label(
             hero,
             textvariable=self._hotkey_var,
             font=("Segoe UI", 10),
-            bg="#f4f7fb",
+            bg=self._surface_color,
             fg="#496179",
-        ).pack(anchor="w", pady=(6, 10))
+        ).pack(anchor="w", pady=(10, 14))
+
+        summary_row = tk.Frame(content_area, bg=self._surface_color)
+        summary_row.pack(fill="x", pady=(0, 14))
+        self._build_summary_card(summary_row, "Mode", self._mode_var, width=172).pack(side="left", fill="x", expand=True)
+        self._build_summary_card(summary_row, "Insert", self._paste_mode, width=172).pack(side="left", fill="x", expand=True, padx=(
+            10,
+            10,
+        ))
+        self._build_summary_card(summary_row, "Translation", self._translation_mode, width=172).pack(side="left", fill="x", expand=True)
+
+        workspace_card = tk.Frame(
+            content_area,
+            bg=self._card_color,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground="#dbe3ec",
+            padx=18,
+            pady=18,
+        )
+        workspace_card.pack(fill="x", pady=(0, 14))
+
+        workspace_header = tk.Frame(workspace_card, bg=self._card_color)
+        workspace_header.pack(fill="x")
         tk.Label(
-            hero,
-            text="Voicely-style workflow: keep the app in the background, stay in the target text field, and use the hotkey.",
-            wraplength=510,
+            workspace_header,
+            text="Dictation workspace",
+            font=("Segoe UI", 13, "bold"),
+            bg=self._card_color,
+            fg=self._text_color,
+        ).pack(side="left")
+        privacy_chip = tk.Label(
+            workspace_header,
+            textvariable=self._privacy_mode,
+            font=("Segoe UI", 8, "bold"),
+            padx=10,
+            pady=5,
+            bg="#ebf8ff",
+            fg="#155b75",
+        )
+        privacy_chip.pack(side="right")
+
+        tk.Label(
+            workspace_card,
+            text="Keep TypeFlow in the background, stay in your target field, press the hotkey, and let the text flow in automatically.",
+            wraplength=530,
             justify="left",
             font=("Segoe UI", 9),
-            bg="#f4f7fb",
-            fg="#5e7488",
-        ).pack(anchor="w", pady=(0, 16))
+            bg=self._card_color,
+            fg=self._muted_text_color,
+        ).pack(anchor="w", pady=(10, 14))
 
-        controls_card = tk.Frame(content_area, bg="white", bd=0, highlightthickness=1, highlightbackground="#dbe3ec")
-        controls_card.pack(fill="x", pady=(0, 14))
-
-        mode_row = tk.Frame(controls_card, bg="white", padx=16, pady=14)
-        mode_row.pack(anchor="w", pady=(0, 12))
-        tk.Label(mode_row, text="Mode", font=("Segoe UI", 10, "bold"), bg="white", fg="#16324f").pack(side="left")
+        mode_row = tk.Frame(workspace_card, bg=self._card_color)
+        mode_row.pack(fill="x")
+        tk.Label(mode_row, text="Mode", font=("Segoe UI", 10, "bold"), bg=self._card_color, fg=self._text_color).pack(side="left")
         mode_menu = tk.OptionMenu(
             mode_row,
             self._mode_var,
@@ -88,57 +184,89 @@ class TypeFlowUI:
             "code",
             command=self._handle_mode_change,
         )
-        mode_menu.config(width=12, font=("Segoe UI", 9))
+        mode_menu.config(
+            width=12,
+            font=("Segoe UI", 9),
+            bg="#eef4fa",
+            activebackground="#dce9f5",
+            highlightthickness=0,
+            relief="flat",
+        )
         mode_menu.pack(side="left", padx=(12, 0))
 
-        status_card = tk.Frame(content_area, bg="white", bd=0, highlightthickness=1, highlightbackground="#dbe3ec")
+        status_card = tk.Frame(
+            content_area,
+            bg=self._card_color,
+            bd=0,
+            highlightthickness=1,
+            highlightbackground="#dbe3ec",
+            padx=18,
+            pady=18,
+        )
         status_card.pack(fill="both", expand=True)
 
-        tk.Label(status_card, text="Status", font=("Segoe UI", 10, "bold"), bg="white", fg="#16324f").pack(
-            anchor="w",
-            padx=16,
-            pady=(14, 6),
+        tk.Label(status_card, text="Live status", font=("Segoe UI", 10, "bold"), bg=self._card_color, fg=self._text_color).pack(
+            anchor="w"
         )
-        tk.Label(status_card, textvariable=self._status, font=("Segoe UI", 13, "bold"), bg="white", fg="#0f766e").pack(
-            anchor="w",
-            padx=16,
+        self._status_label = tk.Label(
+            status_card,
+            textvariable=self._status,
+            font=("Segoe UI", 15, "bold"),
+            bg=self._card_color,
+            fg=self._success_color,
         )
+        self._status_label.pack(anchor="w", pady=(6, 4))
         tk.Label(
             status_card,
             textvariable=self._last_text,
             wraplength=510,
             justify="left",
             font=("Segoe UI", 10),
-            bg="white",
+            bg=self._card_color,
             fg="#203040",
-        ).pack(anchor="w", padx=16, pady=(10, 12))
+        ).pack(anchor="w", pady=(10, 12))
 
-        meta_row = tk.Frame(status_card, bg="white")
-        meta_row.pack(fill="x", padx=16, pady=(0, 10))
-        tk.Label(meta_row, textvariable=self._paste_mode, font=("Segoe UI", 9), bg="white", fg="#5e7488").pack(anchor="w")
-        tk.Label(meta_row, textvariable=self._privacy_mode, font=("Segoe UI", 9), bg="white", fg="#5e7488").pack(anchor="w", pady=(3, 0))
-        tk.Label(meta_row, textvariable=self._translation_mode, font=("Segoe UI", 9), bg="white", fg="#5e7488").pack(anchor="w", pady=(3, 0))
+        workflow_strip = tk.Frame(status_card, bg=self._card_color)
+        workflow_strip.pack(fill="x", pady=(2, 0))
+        self._build_step_card(workflow_strip, "1", "Press hotkey", "Start dictation from any text field.").pack(
+            side="left", fill="both", expand=True
+        )
+        self._build_step_card(workflow_strip, "2", "Speak naturally", "Filler words and pauses can be cleaned up automatically.").pack(
+            side="left", fill="both", expand=True, padx=(10, 10)
+        )
+        self._build_step_card(workflow_strip, "3", "Text appears", "TypeFlow inserts formatted text right where you work.").pack(
+            side="left", fill="both", expand=True
+        )
+
         tk.Label(
             status_card,
-            text="Spoken commands supported right now: Punkt, Komma, Fragezeichen, Ausrufezeichen, Doppelpunkt, Semikolon, neue Zeile, neuer Absatz, Tab, plus English equivalents.",
+            text="Supports punctuation commands in German and English, translation modes, snippets, and a local-first privacy workflow.",
             wraplength=510,
             justify="left",
             font=("Segoe UI", 9),
-            bg="white",
-            fg="#5e7488",
-        ).pack(anchor="w", padx=16, pady=(0, 16))
+            bg=self._card_color,
+            fg=self._muted_text_color,
+        ).pack(anchor="w", pady=(14, 0))
 
-        button_row = tk.Frame(container, bg="#f4f7fb")
+        button_row = tk.Frame(container, bg=self._surface_color)
         button_row.pack(fill="x", side="bottom", pady=(14, 0))
 
-        tk.Button(
+        self._toggle_button = tk.Button(
             button_row,
-            text="Start / stop recording",
+            text="Start dictation",
             command=on_toggle,
             font=("Segoe UI", 10),
-            padx=12,
-            pady=6,
-        ).pack(side="left")
+            padx=16,
+            pady=8,
+            bg=self._accent_color,
+            fg="white",
+            activebackground="#095c6c",
+            activeforeground="white",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+        )
+        self._toggle_button.pack(side="left")
         tk.Button(
             button_row,
             text="Settings",
@@ -146,6 +274,12 @@ class TypeFlowUI:
             font=("Segoe UI", 10),
             padx=12,
             pady=6,
+            bg=self._card_color,
+            fg=self._text_color,
+            activebackground="#edf3f8",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
         ).pack(side="left", padx=(10, 0))
         tk.Button(
             button_row,
@@ -154,6 +288,12 @@ class TypeFlowUI:
             font=("Segoe UI", 10),
             padx=12,
             pady=6,
+            bg=self._card_color,
+            fg=self._text_color,
+            activebackground="#edf3f8",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
         ).pack(side="left", padx=(10, 0))
         tk.Button(
             button_row,
@@ -162,10 +302,19 @@ class TypeFlowUI:
             font=("Segoe UI", 10),
             padx=12,
             pady=6,
-        ).pack(side="left", padx=(10, 0))
+            bg=self._card_color,
+            fg=self._text_color,
+            activebackground="#edf3f8",
+            relief="flat",
+            bd=0,
+            cursor="hand2",
+        ).pack(side="right")
+
+        self.set_status("Ready")
 
     def set_status(self, text: str) -> None:
         self._status.set(text)
+        self._update_status_appearance(text)
         self._root.update_idletasks()
 
     def set_transcript(self, text: str) -> None:
@@ -289,7 +438,7 @@ class TypeFlowUI:
         )
         header.pack(anchor="w", pady=(0, 10))
 
-        notebook = ttk.Notebook(content)
+        notebook = ttk.Notebook(content, style="TypeFlow.TNotebook")
         notebook.pack(fill="both", expand=True)
 
         general_tab = tk.Frame(notebook, bg="white", padx=18, pady=18)
@@ -425,6 +574,60 @@ class TypeFlowUI:
 
     def _handle_mode_change(self, value: str) -> None:
         self._on_mode_change(value)
+
+    def _build_summary_card(self, parent: tk.Widget, title: str, variable: tk.StringVar, width: int) -> tk.Frame:
+        card = tk.Frame(parent, bg=self._card_color, bd=0, highlightthickness=1, highlightbackground="#dbe3ec", padx=14, pady=12)
+        card.configure(width=width)
+        card.pack_propagate(False)
+        tk.Label(card, text=title, font=("Segoe UI", 8, "bold"), bg=self._card_color, fg=self._muted_text_color).pack(anchor="w")
+        tk.Label(card, textvariable=variable, font=("Segoe UI", 10, "bold"), bg=self._card_color, fg=self._text_color, wraplength=140, justify="left").pack(
+            anchor="w", pady=(8, 0)
+        )
+        return card
+
+    def _build_step_card(self, parent: tk.Widget, number: str, title: str, copy: str) -> tk.Frame:
+        card = tk.Frame(parent, bg="#f8fbfd", bd=0, highlightthickness=1, highlightbackground="#e3edf5", padx=12, pady=12)
+        badge = tk.Label(card, text=number, font=("Segoe UI", 8, "bold"), width=3, padx=0, pady=4, bg=self._accent_soft, fg=self._accent_color)
+        badge.pack(anchor="w")
+        tk.Label(card, text=title, font=("Segoe UI", 10, "bold"), bg="#f8fbfd", fg=self._text_color).pack(anchor="w", pady=(8, 4))
+        tk.Label(card, text=copy, wraplength=145, justify="left", font=("Segoe UI", 8), bg="#f8fbfd", fg=self._muted_text_color).pack(anchor="w")
+        return card
+
+    def _update_status_appearance(self, text: str) -> None:
+        lowered = text.lower()
+        badge_text = "Ready"
+        badge_fg = self._accent_color
+        badge_bg = self._accent_soft
+        status_fg = self._success_color
+        button_text = "Start dictation"
+
+        if "recording" in lowered:
+            badge_text = "Recording"
+            badge_fg = self._warning_color
+            badge_bg = self._warning_soft
+            status_fg = self._warning_color
+            button_text = "Stop dictation"
+        elif "transcrib" in lowered or "processing" in lowered:
+            badge_text = "Processing"
+            badge_fg = self._accent_color
+            badge_bg = self._accent_soft
+            status_fg = self._accent_color
+            button_text = "Processing..."
+        elif "error" in lowered or "failed" in lowered:
+            badge_text = "Needs attention"
+            badge_fg = self._error_color
+            badge_bg = self._error_soft
+            status_fg = self._error_color
+        elif "saved" in lowered or "inserted" in lowered or "stopped automatically" in lowered:
+            badge_text = "Done"
+            badge_fg = self._success_color
+            badge_bg = self._success_soft
+            status_fg = self._success_color
+
+        self._status_badge.set(badge_text)
+        self._status_badge_label.configure(bg=badge_bg, fg=badge_fg)
+        self._status_label.configure(fg=status_fg)
+        self._toggle_button.configure(text=button_text, state="disabled" if button_text == "Processing..." else "normal")
 
     def _add_labeled_entry(self, parent: tk.Widget, label: str, variable: tk.StringVar) -> None:
         row = tk.Frame(parent, bg=parent.cget("bg"))
